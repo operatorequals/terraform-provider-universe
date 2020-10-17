@@ -6,7 +6,7 @@ PKG_NAME=multiverse
 default: build
 
 build: fmtcheck
-	go install
+	go build
 
 test: fmtcheck
 	go test -i $(TEST) || exit 1
@@ -15,6 +15,9 @@ test: fmtcheck
 
 testacc: fmtcheck
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 120m
+
+install: build
+	./scripts/install.sh
 
 vet:
 	@echo "go vet ."

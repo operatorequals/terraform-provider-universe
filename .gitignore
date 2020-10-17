@@ -19,3 +19,4 @@ pkg/
 .idea/
 .terraform/
 terraform-provider-multiverse
+vendor

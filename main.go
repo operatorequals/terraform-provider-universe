@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mobfox/terraform-provider-multiverse/multiverse"
+	"github.com/hashicorp/terraform-plugin-sdk/plugin"
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"terraform-provider-multiverse/multiverse"
 )
 
 func main() {

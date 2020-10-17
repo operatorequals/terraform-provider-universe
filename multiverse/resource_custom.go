@@ -3,7 +3,8 @@ package multiverse
 import (
 	"bytes"
 	"encoding/json"
-	"github.com/hashicorp/terraform/helper/schema"
+	"fmt"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"log"
 	"os/exec"
 )
@@ -67,30 +68,42 @@ func onDelete(d *schema.ResourceData, m interface{}) error {
 }
 
 func do(event string, d *schema.ResourceData, m interface{}) error {
-	log.Printf("Executing: %s %s %s %s", d.Get("executor"), d.Get("script"), event, d.Get("data"))
+	//
+	log.Printf("Executing: %s %s %s %#v", d.Get("executor"), d.Get("script"), event, d.Get("data"))
 
 	cmd := exec.Command(d.Get("executor").(string), d.Get("script").(string), event)
 
 	if event == "delete" {
 		cmd.Stdin = bytes.NewReader([]byte(d.Id()))
 	} else {
-		cmd.Stdin = bytes.NewReader([]byte(d.Get("data").(string)))
+		d := []byte(d.Get("data").(string))
+		var ignore interface{}
+		err := json.Unmarshal(d, &ignore)
+		if err != nil {
+			// User gave bad JSON
+			return fmt.Errorf("bad JSON in script: %s", string(d))
+		}
+		cmd.Stdin = bytes.NewReader(d)
 	}
 
 	result, err := cmd.Output()
 
-	if err == nil {
-		var resource map[string]interface{}
-		err = json.Unmarshal([]byte(result), &resource)
-		if err == nil {
-			if event == "delete" {
-				d.SetId("")
-			} else {
-				key := d.Get("id_key").(string)
-				d.Set("resource", resource)
-				d.SetId(resource[key].(string))
-			}
-		}
+	if err != nil {
+		log.Printf("Command error: %s\n", string(err.(*exec.ExitError).Stderr))
+		return err
+	}
+
+	var resource map[string]interface{}
+	err = json.Unmarshal([]byte(result), &resource)
+	if err != nil {
+		return err
+	}
+	if event == "delete" {
+		d.SetId("")
+	} else {
+		key := d.Get("id_key").(string)
+		d.Set("resource", resource)
+		d.SetId(resource[key].(string))
 	}
 
 	return err
