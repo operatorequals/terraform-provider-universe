@@ -7,7 +7,8 @@
 *.iml
 .DS_Store
 bin/
-
+**/terraform.tfstate*
+**/theplan
 # Test binary, build with `go test -c`
 *.test
 

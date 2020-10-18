@@ -18,15 +18,22 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			resourceName: resourceCustom(),
 		},
+		Schema: map[string]*schema.Schema{
+			"configuration": {
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: "The configuration passed as the last argument to the provider script.",
+			},
+		},
 	}
-	p.ConfigureFunc = providerConfigure(p)
+	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+		conf, ok := d.GetOk("configuration")
+		if !ok {
+			return "", nil
+		}
+		config := conf.(string)
+		return config, nil
+	}
 
 	return p
-}
-
-func providerConfigure(p *schema.Provider) schema.ConfigureFunc {
-	return func(d *schema.ResourceData) (interface{}, error) {
-
-		return nil, nil
-	}
 }

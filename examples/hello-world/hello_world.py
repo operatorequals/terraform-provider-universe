@@ -1,26 +1,24 @@
+import os
 import sys
 import json
 
-
-def handler(event, data):
-   data_as_json = json.loads(data)
+if __name__ == '__main__':
+   event = sys.argv[1]
+   config = os.environ.get("multiverse")
+   if len(sys.argv) > 2:
+       config = sys.argv[2]
+   input = sys.stdin.read()
+   input_dict = json.loads(input)
    if event == "create":
-        result = { "id" : "1" }   
+        input_dict.update({ "id" : "1"})
+        result = input_dict
    elif event == "read":
-        result =  {"id": "1" }   
+        result =  input_dict
    elif event == "update":
-        result =  { "id": "1" }
+        result =  input_dict
    elif event == "delete":
         result =  {}
-   return result
+   else:
+       sys.exit(1)
+   print(json.dumps(result))
 
-def read_data():
-    data = ''
-    for line in sys.stdin:
-        data += line
-
-    return data
-   
-if __name__ == '__main__':
-    context = sys.stdin.read()
-    print(json.dumps(handler(sys.argv[1], context)))

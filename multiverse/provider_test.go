@@ -9,7 +9,3 @@ func TestProvider(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
-
-// var testProviders = map[string]schema.Resource{
-// 	"multiverse": Provider(),
-// }

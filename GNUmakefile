@@ -5,7 +5,7 @@ PKG_NAME=multiverse
 
 default: build
 
-build: fmtcheck
+build: fmt
 	go build
 
 test: fmtcheck
