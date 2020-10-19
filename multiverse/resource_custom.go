@@ -28,12 +28,12 @@ func resourceCustom() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"executor": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"script": {
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"data": {
@@ -49,7 +49,7 @@ func resourceCustom() *schema.Resource {
 
 			"id_key": {
 				Type:         schema.TypeString,
-				Required:     true,
+				Optional:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
 		},
@@ -72,18 +72,85 @@ func onDelete(d *schema.ResourceData, m interface{}) error {
 	return do("delete", d, m)
 }
 
-func do(event string, d *schema.ResourceData, config interface{}) error {
+func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d *schema.ResourceData) (string, error) {
 	//
-	configuration, ok := config.(string)
-	if !ok {
-		return fmt.Errorf("bad configuration: %v", config)
-	}
-	id := d.Id()
-	idKey := d.Get("id_key").(string)
-	command := d.Get("executor").(string)
-	script := d.Get("script").(string)
+	log.Printf("getFromDefaultsOrResource() field %s in %#v or %#v", name, defaults, d)
 
-	log.Printf("Executing: %s %s %s %s", event, command, script, configuration)
+	var result string
+	found := false
+	value, ok := defaults[name]
+	if ok {
+		if str, ok := value.(string); ok {
+			result = str
+			found = true
+		}
+		if m, ok := value.(map[string]interface{}); ok {
+			if value, ok = m[name]; ok {
+				if str, ok := value.(string); ok {
+					result = str
+					found = true
+				}
+			}
+		}
+	}
+	x, ok := d.GetOk(name)
+	if ok {
+		log.Printf("getFromDefaultsOrResource(98) field %s = %#v", name, x)
+		str, ok := x.(string)
+		if ok {
+			log.Printf("getFromDefaultsOrResource(101) field %s = %#v", name, str)
+			result = str
+			found = true
+		}
+		log.Printf("getFromDefaultsOrResource(105) field %s = %#v", name, str)
+	}
+	if found != true {
+		return "", fmt.Errorf("missing required field %s in %v or %v", name, defaults, x)
+	}
+	return result, nil
+}
+
+// pickle Save some struct to a file for later unpickling
+func pickle(event string, data interface{}) {
+
+	// Open a file and dump JSON to it!
+	fd, err := os.Create(event + ".json")
+	if err != nil {
+		panic(err)
+	}
+	enc := json.NewEncoder(fd)
+	err = enc.Encode(data)
+	if err != nil {
+		panic(err)
+	}
+	defer fd.Close()
+}
+func do(event string, d *schema.ResourceData, defaults interface{}) error {
+	//
+	id := d.Id()
+	for _, n := range []string{"script", "executor", "id_key"} {
+		log.Printf("do() ResourceData field %s = %#v", n, d.Get(n))
+	}
+
+	def, ok := defaults.(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("was expecting map[string]interface{} in 'environment', got %v", defaults)
+	}
+	for _, k := range []string{"id_key", "executor", "script"} {
+		value, err := getFromDefaultsOrResource(k, def, d)
+		if err != nil {
+			return err
+		}
+		def[k] = value
+		log.Printf("getFromDefaultsOrResource => field %s = %#v", k, value)
+	}
+	var idKey string
+	if idk, ok := def["id_key"]; ok {
+		idKey = idk.(string)
+	} else {
+		idKey = "no id key!"
+	}
+	log.Printf("Executing: %s", event)
 	dr, ok := d.GetOk("data")
 	if !ok || dr == nil {
 		return fmt.Errorf("bad JSON in script: %v", dr)
@@ -98,16 +165,28 @@ func do(event string, d *schema.ResourceData, config interface{}) error {
 	if err != nil {
 		return fmt.Errorf("bad JSON in script: %s", js)
 	}
-	attributes[idKey] = id
 	datab, err := json.Marshal(attributes)
 	if err != nil {
 		return err
 	}
 	log.Printf("Executing: %s", string(datab))
 
-	cmd := exec.Command(command, script, event)
+	cmd := exec.Command(def["executor"].(string), def["script"].(string), event)
 	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, "multiverse="+configuration)
+	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", idKey, id))
+	for k, v := range def {
+		if s, ok := v.(string); ok {
+			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, s))
+		}
+		if env, ok := v.(map[string]interface{}); ok {
+			for envname, enval := range env {
+				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envname, enval))
+			}
+		}
+	}
+	for _, e := range cmd.Env {
+		log.Printf("Executing: environ: %s", e)
+	}
 
 	if event == "delete" {
 		cmd.Stdin = bytes.NewReader([]byte(id))
@@ -122,7 +201,7 @@ func do(event string, d *schema.ResourceData, config interface{}) error {
 		return err
 	}
 
-	var resource map[string]interface{}
+	var resource interface{}
 	err = json.Unmarshal(result, &resource)
 	if err != nil {
 		return err
@@ -130,13 +209,19 @@ func do(event string, d *schema.ResourceData, config interface{}) error {
 	if event == "delete" {
 		d.SetId("")
 	} else {
-		_, ok := resource[idKey]
+		rm, ok := resource.(map[string]interface{})
 		if !ok {
+			return fmt.Errorf("expecting map[string]interface{} from subprocess, got '%#v'", resource)
+		}
+		_, ok = rm[idKey]
+		if !ok && event == "create" {
 			return fmt.Errorf("missing id attribute '%s' in response: %s", idKey, result)
 		}
-		d.SetId(resource[idKey].(string))
-		delete(resource, idKey)
-		resultb, err := json.Marshal(resource)
+		if event == "create" {
+			d.SetId(rm[idKey].(string))
+		}
+		delete(rm, idKey)
+		resultb, err := json.Marshal(rm)
 		if err != nil {
 			return err
 		}

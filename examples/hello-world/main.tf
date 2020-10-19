@@ -12,11 +12,19 @@ terraform {
   }
 }
 provider "multiverse" {
-  configuration = "\"Hello Enola\""
+  environment = {
+    api_token = "redacted"
+  }
 }
 
 provider "alpha" {
-  configuration = "\"Hello Lucy\""
+  environment = {
+    servername = "api.example.com"
+    api_token = "redacted"
+  }
+  executor = "python3"
+  script = "hello_world.py"
+  id_key = "id"
 }
 
 resource "multiverse" "h" {
@@ -24,36 +32,31 @@ resource "multiverse" "h" {
   script = "hello_world.py"
   id_key = "id"
   data = <<JSON
-{
-  "name": "test-terraform-test",
-  "created-by" : "Elvis Presley",
-  "where" : "gracelands"
-}
+    {
+      "name": "test-terraform-test-43",
+      "created-by" : "Elvis Presley",
+      "where" : "gracelands"
+    }
 JSON
 }
 
 
 resource "alpha" "hp" {
-  executor = "python3"
-  script = "hello_world.py"
-  id_key = "id"
   data = <<JSON
-{
-  "name": "Another strange alpha resource",
-  "created-by" : "Harry Potter",
-  "nemesis" : "Tom Riddle",
-  "likes" : [
-    "Ginny Weasley",
-    "Ron Weasley"
-  ]
-}
+    {
+      "name": "Another strange alpha resource",
+      "created-by" : "Harry Potter",
+      "nemesis" : "Tom Riddle",
+      "likes" : [
+        "Ginny Weasley",
+        "Ron Weasley"
+      ]
+    }
 JSON
 }
 
 resource "alpha" "i" {
-  executor = "python3"
-  script = "hello_world.py"
-  id_key = "id"
+
   data = <<JSON
 {
   "name": "Fake strange alpha resource"

@@ -8,7 +8,6 @@ import logging
 import urllib.request
 import urllib.response
 import http.client
-from urllib.request import Request
 
 spotinst_token = 'SPOTINST_TOKEN'
 spotinst_account_id = 'SPOTINST_ACCOUNT_ID'

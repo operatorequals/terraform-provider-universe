@@ -38,7 +38,7 @@ Using the provider
 
 Check the `examples/` directory
 
-Here an example of Spotinst Multai Load Balancer TargetSet
+Here an example of Spot.io Multi Load Balancer TargetSet
 
 ```hcl
 provider "multiverse" {}
@@ -122,34 +122,57 @@ Your script must be able to handle the TF event and the JSON payload *data*
 * `event` : will have one of these `create, read, delete, update`
 * `data` : is passed via `stdin`
 
-Provider configuration data is passed in the environment variable `multiverse`.
+Provider configuration data is passed in the environment variables:
 
-Your script should look something like the hello-world example:
+* `id` - if not `create` this is the ID of the resource as returned to Terraform in the create
+* `script` -
+* `id_key` - 
+* `executor` -
+* `script` -
+
+Plus any attributes present in the `environment` section in the provider block.
+
+Your script could look something like the hello-world example below. This script maintains files in the file system 
+containing JSON data in the HCL. 
 
 ```python
 import os
 import sys
 import json
+import tempfile
 
 if __name__ == '__main__':
    event = sys.argv[1]
-   config = os.environ.get("multiverse")
-   if len(sys.argv) > 2:
-       config = sys.argv[2]
+   id = os.environ.get("id")
+   script = os.environ.get("script")
    input = sys.stdin.read()
    input_dict = json.loads(input)
+   result = None
    if event == "create":
-        input_dict.update({ "id" : "1"})
+        ff = tempfile.NamedTemporaryFile(mode = 'w+',  prefix=script, delete=False)
+        ff.write(json.dumps(input_dict))
+        ff.close()
+        input_dict.update({ "id" : ff.name})
         result = input_dict
    elif event == "read":
-        result =  input_dict
+        fr=open(id, mode='r+')
+        data = fr.read()
+        fr.close()
+        if len(data) > 0:
+            result = json.loads(data)
+        else:
+            result = {}
    elif event == "update":
-        result =  input_dict
+       fu=open(id,mode='w+')
+       fu.write(json.dumps(input_dict))
+       fu.close()
+       result = input_dict
    elif event == "delete":
-        result =  {}
-   else:
-       sys.exit(1)
+       os.remove(id)
+       result =  {}
    print(json.dumps(result))
+
+
 ```
 
 To test your script before using in TF
@@ -157,9 +180,101 @@ To test your script before using in TF
 ```bash
 echo "{\"key\":\"value\"}" | python3 my_resource.py create
 ```
+## Renaming the Resource Type
 
-Developing the Provider
----------------------------
+In your Terraform source code you may not want to see the resource type `multiverse`. You might a 
+better name, reflecting the actual resouce type you're managing. So you might want this instead:
+
+```hcl-terraform
+resource "spot_io_elastic_instance" "myapp" {
+  executor = "python3"
+  script = "spotinst_mlb_targetset.py"
+  id_key = "id"
+  data = <<JSON
+        {
+         . . .
+        }
+JSON
+}
+```
+
+This can be achieved by copying or linking to the provider binary file with a name inclusive of the new resource type name:
+
+```shell script
+ # Move to the plugins directory wherein lies the provider
+cd ~/.terraform.d/plugins/github.com/mobfox/alpha/0.0.1/linux_amd64
+# Copy the original file
+cp terraform-provider-multiverse  terraform-provider-spot_io_elastic_instance
+# or maybe link it
+ln -s terraform-provider-multiverse  terraform-provider-spot_io_elastic_instance
+```
+
+Then you need to configure the provider in your TF file:
+
+```hcl-terraform
+terraform {
+  required_version = ">= 0.13.0"
+  required_providers {
+    multiverse = {
+      source = "github.com/mobfox/multiverse"
+      version = ">=0.0.1"
+    }
+    spot_io_elastic_instance = {
+      source = "github.com/mobfox/spot_io_elastic_instance"
+      version = ">=0.0.1"
+    }
+  }
+}
+```
+How des this work? The provider tells Terraform that it supports a single resource type. It extracts the name of the resource type 
+from it's own executable in the plugins directory.
+
+You could potentially use this to 'fake out' a normal provider to investigate its behaviour or 
+emulate a defunct provider.
+
+
+## Configuring the Provider
+
+Terraform allows [configuration of providers](https://www.terraform.io/docs/configuration/providers.html#provider-configuration-1), 
+in a `'provider` clause. The multiverse provider also has configuration where you specify the default executor, script and id fields.  
+An additional field `environment` contains a map of environment variables which are passed to the script when it is executed. 
+
+This means you don't need to repeat the `executor` nad `script` each time the provider is used.  You can 
+override the defaults in the resource block as below.
+
+```hcl-terraform
+provider "alpha" {
+  environment = {
+    servername = "api.example.com"
+    api_token = "redacted"
+  }
+  executor = "python3"
+  script = "hello_world.py"
+  id_key = "id"
+}
+
+resource "alpha" "h1" {
+  data = <<JSON
+    {
+      "name": "test-terraform-test-1",
+    }
+JSON
+}
+
+resource "alpha" "h2" {
+  script = "hello_world_v2.py"
+  data = <<JSON
+    {
+      "name": "test-terraform-test-2",
+    }
+JSON
+}
+
+```
+ 
+
+## Developing the Provider
+
 
 If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (version 1.15.2+ is *required*). You'll also need to correctly setup a [GOPATH](http://golang.org/doc/code.html#GOPATH), as well as adding `$GOPATH/bin` to your `$PATH`.
 
@@ -167,7 +282,7 @@ If you wish to work on the provider, you'll first need [Go](http://www.golang.or
 
 To compile the provider, run `make build`. This will build the provider and put the provider binary in the workspace directory.
 
-```sh
+```sh script
 $ make build
 ```
 
@@ -195,7 +310,8 @@ $HOME/.terraform.d/
     │                   └── terraform-provider-multiverse
     ├── terraform-provider-alpha
     └── terraform-provider-multiverse
-
 ```
+
+
 
 Feel free to contribute!
