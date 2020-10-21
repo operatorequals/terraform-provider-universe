@@ -9,7 +9,7 @@ terraform {
 }
 provider "multiverse" {
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "filename"
   environment = {
     api_token = "redacted"
@@ -25,7 +25,7 @@ resource "json-file" "h" {
   provider = multiverse
   // because Terraform does not scan local providers for resource types.
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "filename"
   computed = jsonencode([
     "created"])
@@ -33,7 +33,7 @@ resource "json-file" "h" {
     "name": "Don't Step On My Blue Suede Shoes",
     "created-by" : "Elvis Presley",
     "where" : "Gracelands"
-    "hit" : "yes"
+    "hit" : "Gold"
 
   })
 }
@@ -61,9 +61,9 @@ resource "json-file" "i" {
 }
 
 output "hp_name" {
-  value = "${jsondecode(json-file.hp.config)["name"]}"
+  value = jsondecode(json-file.hp.config)["name"]
 }
 
 output "hp_created" {
-  value = "${jsondecode(json-file.hp.dynamic)["created"]}"
+  value = jsondecode(json-file.hp.dynamic)["created"]
 }

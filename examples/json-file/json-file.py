@@ -31,7 +31,7 @@ if __name__ == '__main__':
     input_dict = json.loads(input)
 
     if event == "create":
-        # Create a unique file /tmp/hello_world.pyXXXX and write the data to it
+        # Create a unique file /tmp/json-file.pyXXXX and write the data to it
         ff = tempfile.NamedTemporaryFile(mode='w+', prefix=script, delete=False)
         input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         ff.write(json.dumps(input_dict))

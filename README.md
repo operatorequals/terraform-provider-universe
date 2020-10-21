@@ -40,7 +40,7 @@ $ make build
 Check the `examples/` directory
 
 Here an example of a provider which creates a json file in /tmp and stores data in it. 
-This is implemented in the hello-world example directory.
+This is implemented in the json-file example directory.
 
 
 ## Example TF
@@ -59,7 +59,7 @@ terraform {
 }
 provider "multiverse" {
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "filename"
   environment = {
     api_token = "redacted"
@@ -74,7 +74,7 @@ provider "multiverse" {
 resource "json-file" "h" {
   provider = multiverse // because Terraform does not scan local providers for resource types.
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "filename"
   computed = jsonencode([
     "created"])
@@ -139,8 +139,8 @@ Is required because Terraform does not scan local providers. See Terraform Issue
 
 #### Handling Dynamic Data from the Executor
 
-The `config` field in the provider attributes is monitored by Terraform plan for changes becuase it's Required field.
-Any changes are detected ant put into plan. However your provider may generated attributes dynamically (such as the creation
+The `config` field in the provider attributes is monitored by Terraform plan for changes because it is a Required field.
+Any changes are detected and put into the plan. However, your provider may generated attributes dynamically (such as the creation
 date) of a resource. When you list these dynamic fields in the `computed` field in the provider configuration or resource blocks, 
 multiverse moves these fields into the `dynamic` field. The `dynamic` field is marked 'Computed' and is ignored by Terraform plan. As follows:
 
@@ -148,7 +148,7 @@ multiverse moves these fields into the `dynamic` field. The `dynamic` field is m
 resource "json-file" "h" {
   provider = multiverse // because Terraform does not scan local providers for resource types.
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "filename"
   computed = jsonencode(["created"])
   config = jsonencode({
@@ -183,11 +183,11 @@ resource "json-file" "h" {
 }
 ```
  
-In the executor script the `created` field is retuned just like the others. No extra handling is requried:
+In the executor script the `created` field is returned just like the others. No extra handling is required:
 
 ```python
 if event == "create":
-    # Create a unique file /tmp/hello_world.pyXXXX and write the data to it
+    # Create a unique file /tmp/json-file.pyXXXX and write the data to it
     . . .
     input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
  
@@ -295,7 +295,7 @@ if __name__ == '__main__':
    input_dict = json.loads(input)
 
    if event == "create":
-        # Create a unique file /tmp/hello_world.pyXXXX and write the data to it
+        # Create a unique file /tmp/json-file.pyXXXX and write the data to it
         ff = tempfile.NamedTemporaryFile(mode = 'w+',  prefix=script, delete=False)
         input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         ff.write(json.dumps(input_dict))
@@ -375,7 +375,7 @@ provider "multiverse" {
     api_token = "redacted"
   }
   executor = "python3"
-  script = "hello_world.py"
+  script = "json-file.py"
   id_key = "id"
 }
 
