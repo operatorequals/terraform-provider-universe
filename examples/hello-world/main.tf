@@ -29,7 +29,7 @@ resource "json-file" "h" {
   id_key = "filename"
   computed = jsonencode([
     "created"])
-  data = jsonencode({
+  config = jsonencode({
     "name": "Don't Step On My Blue Suede Shoes",
     "created-by" : "Elvis Presley",
     "where" : "Gracelands"
@@ -41,7 +41,7 @@ resource "json-file" "h" {
 resource "json-file" "hp" {
   provider = multiverse
   // because Terraform does not scan local providers for resource types.
-  data = jsonencode({
+  config = jsonencode({
     "name": "Another strange resource",
     "main-character" : "Harry Potter",
     "nemesis" : "Tom Riddle",
@@ -55,13 +55,13 @@ resource "json-file" "hp" {
 resource "json-file" "i" {
   provider = multiverse
   // because Terraform does not scan local providers for resource types.
-  data = jsonencode({
+  config = jsonencode({
     "name": "Fake strange resource"
   })
 }
 
 output "hp_name" {
-  value = "${jsondecode(json-file.hp.data)["name"]}"
+  value = "${jsondecode(json-file.hp.config)["name"]}"
 }
 
 output "hp_created" {

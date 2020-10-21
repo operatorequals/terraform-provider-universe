@@ -13,7 +13,7 @@ resource "multiverse" "spotinst_targetset_and_rules" {
   executor = "python3"
   script = "spotinst_mlb_targetset.py"
   id_key = "id"
-  data = jsonencode({
+  config = jsonencode({
     "name": "test-terraform-test",
     "mlb_id": "lb-123",
     "mlb_deployment_id": "dp-123",
@@ -32,11 +32,11 @@ output "resources" {
 }
 
 output "test_data" {
-  value = "${multiverse.spotinst_targetset_and_rules.data}"
+  value = "${multiverse.spotinst_targetset_and_rules.config}"
 }
 
 output "test_targetset_id" {
-  value = "${jsondecode(multiverse.spotinst_targetset_and_rules.data)["testTargetSet"]}"
+  value = "${jsondecode(multiverse.spotinst_targetset_and_rules.config)["testTargetSet"]}"
 }
 
 //output "control_targetset_id" {

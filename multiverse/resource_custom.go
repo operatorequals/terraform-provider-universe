@@ -37,7 +37,7 @@ func resourceCustom() *schema.Resource {
 				Optional: true,
 			},
 
-			"data": {
+			"config": {
 				Type:         schema.TypeString,
 				Required:     true,
 				ValidateFunc: validation.StringIsJSON,
@@ -173,7 +173,7 @@ func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error
 		idKey = "no id key!"
 	}
 	log.Printf("Executing: %s", event)
-	dr, ok := d.GetOk("data")
+	dr, ok := d.GetOk("config")
 	if !ok || dr == nil {
 		return false, fmt.Errorf("bad JSON in script: %v", dr)
 	}
@@ -299,7 +299,7 @@ func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error
 		if err != nil {
 			return false, err
 		}
-		err = d.Set("data", string(resultb))
+		err = d.Set("config", string(resultb))
 		log.Printf("Executed: setting data to: %s", string(resultb))
 	}
 
