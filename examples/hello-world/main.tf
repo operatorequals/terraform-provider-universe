@@ -13,7 +13,7 @@ terraform {
 }
 provider "multiverse" {
   environment = {
-    api_token = "redacted"
+    api_token = "redacted" // example environment
   }
 }
 
@@ -31,39 +31,34 @@ resource "multiverse" "h" {
   executor = "python3"
   script = "hello_world.py"
   id_key = "id"
-  data = <<JSON
-    {
+  data = jsonencode({
       "name": "test-terraform-test-43",
       "created-by" : "Elvis Presley",
       "where" : "gracelands"
-    }
-JSON
+    })
 }
 
 
 resource "alpha" "hp" {
-  data = <<JSON
-    {
+  data = jsonencode({
+
       "name": "Another strange alpha resource",
-      "created-by" : "Harry Potter",
+      "main-character" : "Harry Potter",
       "nemesis" : "Tom Riddle",
       "likes" : [
         "Ginny Weasley",
         "Ron Weasley"
       ]
-    }
-JSON
+    })
 }
 
 resource "alpha" "i" {
 
-  data = <<JSON
-{
-  "name": "Fake strange alpha resource"
-}
-JSON
+  data = jsonencode({
+    "name": "Fake strange alpha resource"
+  })
 }
 
-output "data" {
-  value = "${alpha.hp.data}"
+output "hp_name" {
+  value = "${jsondecode(alpha.hp.data)["name"]}"
 }
