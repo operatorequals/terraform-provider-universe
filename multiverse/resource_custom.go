@@ -18,6 +18,7 @@ func resourceCustom() *schema.Resource {
 		Read:   onRead,
 		Update: onUpdate,
 		Delete: onDelete,
+		Exists: onExists,
 
 		Importer: &schema.ResourceImporter{
 			State: schema.ImportStatePassthrough,
@@ -47,6 +48,19 @@ func resourceCustom() *schema.Resource {
 				},
 			},
 
+			"computed": {
+				Description:  "A list of fields (in JSON format) returned from the executor script which are computed dynamically.",
+				Optional:     true,
+				Type:         schema.TypeString,
+				ValidateFunc: validation.StringIsJSON,
+			},
+
+			"dynamic": {
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"id_key": {
 				Type:         schema.TypeString,
 				Optional:     true,
@@ -57,19 +71,27 @@ func resourceCustom() *schema.Resource {
 }
 
 func onCreate(d *schema.ResourceData, m interface{}) error {
-	return do("create", d, m)
+	_, err := do("create", d, m)
+	return err
 }
 
 func onRead(d *schema.ResourceData, m interface{}) error {
-	return do("read", d, m)
+	_, err := do("read", d, m)
+	return err
 }
 
 func onUpdate(d *schema.ResourceData, m interface{}) error {
-	return do("update", d, m)
+	_, err := do("update", d, m)
+	return err
 }
 
 func onDelete(d *schema.ResourceData, m interface{}) error {
-	return do("delete", d, m)
+	_, err := do("delete", d, m)
+	return err
+}
+
+func onExists(d *schema.ResourceData, m interface{}) (bool, error) {
+	return do("exists", d, m)
 }
 
 func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d *schema.ResourceData) (string, error) {
@@ -104,7 +126,7 @@ func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d *
 		}
 		log.Printf("getFromDefaultsOrResource(105) field %s = %#v", name, str)
 	}
-	if found != true {
+	if found != true && name != "computed" { // TODO
 		return "", fmt.Errorf("missing required field %s in %v or %v", name, defaults, x)
 	}
 	return result, nil
@@ -123,10 +145,10 @@ func pickle(event string, data interface{}) {
 	if err != nil {
 		panic(err)
 	}
-	defer fd.Close()
+	defer func() { _ = fd.Close() }()
 }
-func do(event string, d *schema.ResourceData, defaults interface{}) error {
-	//
+func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error) {
+	// TODO Make nicer code
 	id := d.Id()
 	for _, n := range []string{"script", "executor", "id_key"} {
 		log.Printf("do() ResourceData field %s = %#v", n, d.Get(n))
@@ -134,12 +156,12 @@ func do(event string, d *schema.ResourceData, defaults interface{}) error {
 
 	def, ok := defaults.(map[string]interface{})
 	if !ok {
-		return fmt.Errorf("was expecting map[string]interface{} in 'environment', got %v", defaults)
+		return false, fmt.Errorf("was expecting map[string]interface{} in 'environment', got %v", defaults)
 	}
-	for _, k := range []string{"id_key", "executor", "script"} {
+	for _, k := range []string{"id_key", "executor", "script", "computed"} {
 		value, err := getFromDefaultsOrResource(k, def, d)
 		if err != nil {
-			return err
+			return false, err
 		}
 		def[k] = value
 		log.Printf("getFromDefaultsOrResource => field %s = %#v", k, value)
@@ -153,21 +175,21 @@ func do(event string, d *schema.ResourceData, defaults interface{}) error {
 	log.Printf("Executing: %s", event)
 	dr, ok := d.GetOk("data")
 	if !ok || dr == nil {
-		return fmt.Errorf("bad JSON in script: %v", dr)
+		return false, fmt.Errorf("bad JSON in script: %v", dr)
 	}
 	js, ok := dr.(string)
 	if !ok {
-		return fmt.Errorf("bad JSON in script: %v", dr)
+		return false, fmt.Errorf("bad JSON in script: %v", dr)
 	}
 	db := []byte(js)
 	attributes := map[string]interface{}{}
 	err := json.Unmarshal(db, &attributes)
 	if err != nil {
-		return fmt.Errorf("bad JSON in script: %s", js)
+		return false, fmt.Errorf("bad JSON in script: %s", js)
 	}
 	datab, err := json.Marshal(attributes)
 	if err != nil {
-		return err
+		return false, err
 	}
 	log.Printf("Executing: %s", string(datab))
 
@@ -176,20 +198,23 @@ func do(event string, d *schema.ResourceData, defaults interface{}) error {
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", idKey, id))
 	for k, v := range def {
 		if s, ok := v.(string); ok {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", k, s))
+			e := fmt.Sprintf("%s=%s", k, s)
+			cmd.Env = append(cmd.Env, e)
+			log.Printf("Executing: environ default: %s", e)
 		}
-		if env, ok := v.(map[string]interface{}); ok {
-			for envname, enval := range env {
-				cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", envname, enval))
+		if k == "environment" {
+			if env, ok := v.(map[string]interface{}); ok {
+				for envname, enval := range env {
+					e := fmt.Sprintf("%s=%s", envname, enval)
+					cmd.Env = append(cmd.Env, e)
+					log.Printf("Executing: environ environment: %s", e)
+				}
 			}
 		}
 	}
-	for _, e := range cmd.Env {
-		log.Printf("Executing: environ: %s", e)
-	}
 
 	if event == "delete" {
-		cmd.Stdin = bytes.NewReader([]byte(id))
+		cmd.Stdin = bytes.NewReader([]byte{})
 	} else {
 		cmd.Stdin = bytes.NewReader(datab)
 	}
@@ -198,24 +223,73 @@ func do(event string, d *schema.ResourceData, defaults interface{}) error {
 
 	if err != nil {
 		log.Printf("Command error: %s\n", string(err.(*exec.ExitError).Stderr))
-		return err
+		return false, err
 	}
 
 	var resource interface{}
-	err = json.Unmarshal(result, &resource)
-	if err != nil {
-		return err
+	if len(result) == 0 {
+		resource = nil
+	} else {
+		err = json.Unmarshal(result, &resource)
+		if err != nil {
+			return false, err
+		}
 	}
-	if event == "delete" {
+	if event == "exists" {
+		var exists bool
+		err = json.Unmarshal(result, &exists) // Need special unmarshall for atomic types
+		if err != nil {
+			return false, fmt.Errorf("expecting boolean from subprocess, got '%#v'", string(result))
+		}
+		return exists, nil
+	} else if event == "delete" {
 		d.SetId("")
 	} else {
 		rm, ok := resource.(map[string]interface{})
 		if !ok {
-			return fmt.Errorf("expecting map[string]interface{} from subprocess, got '%#v'", resource)
+			return false, fmt.Errorf("expecting map[string]interface{} from subprocess, got '%#v'", string(result))
 		}
+		// Now move the computed fields into a separate "computed" attribute to avoid scrutiny by TF
+		computed := make(map[string]interface{})
+		cf := def["computed"]
+		log.Printf("Executed: computed fields: %s", cf)
+		computedFields := make([]string, 3)
+		cfjson, ok := cf.(string)
+		if !ok {
+			return false, fmt.Errorf("unable to get string in 'computed' got %v", cf)
+		}
+		err := json.Unmarshal([]byte(cfjson), &computedFields)
+		if err != nil {
+			return false, fmt.Errorf("unable to parse 'computed' got %s", cfjson)
+		}
+		dynamics := make(map[string]interface{})
+		dynamic, ok := d.GetOk("dynamic")
+		if ok {
+			dynjson, ok := dynamic.(string)
+			if ok {
+				err = json.Unmarshal([]byte(dynjson), &dynamics)
+				if err != nil {
+					return false, err
+				}
+			}
+		}
+		log.Printf("Executed: computed fields: %v", computedFields)
+		for _, name := range computedFields {
+			cv, ok := rm[name]
+			if ok {
+				computed[name] = cv
+				delete(rm, name)
+			} else {
+				computed[name] = dynamics[name]
+			}
+		}
+		computedAsJSONbytes, err := json.Marshal(computed)
+		_ = d.Set("dynamic", string(computedAsJSONbytes))
+		log.Printf("Executed: computed fields JSON is: %s", string(computedAsJSONbytes))
+
 		_, ok = rm[idKey]
 		if !ok && event == "create" {
-			return fmt.Errorf("missing id attribute '%s' in response: %s", idKey, result)
+			return false, fmt.Errorf("missing id attribute '%s' in response: %s", idKey, string(result))
 		}
 		if event == "create" {
 			d.SetId(rm[idKey].(string))
@@ -223,10 +297,11 @@ func do(event string, d *schema.ResourceData, defaults interface{}) error {
 		delete(rm, idKey)
 		resultb, err := json.Marshal(rm)
 		if err != nil {
-			return err
+			return false, err
 		}
 		err = d.Set("data", string(resultb))
+		log.Printf("Executed: setting data to: %s", string(resultb))
 	}
 
-	return err
+	return false, err
 }

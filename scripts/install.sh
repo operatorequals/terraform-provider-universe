@@ -5,6 +5,7 @@ set -euo pipefail
 BINARY="$SCRIPTS_DIR"/../terraform-provider-multiverse
 BASE_PLUGINS_DIR="$HOME/.terraform.d/plugins/"
 
+mkdir -p "$BASE_PLUGINS_DIR/"
 cp -v "$BINARY" "$BASE_PLUGINS_DIR/"
 cp -v "$BINARY" "$BASE_PLUGINS_DIR/"terraform-provider-alpha
 
