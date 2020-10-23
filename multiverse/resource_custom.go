@@ -94,9 +94,9 @@ func onExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	return do("exists", d, m)
 }
 
-func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d *schema.ResourceData) (string, error) {
+func getFromDefaultsOrResource(name string, defaults map[string]interface{}, dv interface{}, dok bool, required bool) (string, error) {
 	//
-	log.Printf("getFromDefaultsOrResource() field %s in %#v or %#v", name, defaults, d)
+	log.Printf("getFromDefaultsOrResource() field %s in %#v or %#v, %#v %#v\n", name, defaults, dv, dok, required)
 
 	var result string
 	found := false
@@ -106,28 +106,17 @@ func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d *
 			result = str
 			found = true
 		}
-		if m, ok := value.(map[string]interface{}); ok {
-			if value, ok = m[name]; ok {
-				if str, ok := value.(string); ok {
-					result = str
-					found = true
-				}
-			}
-		}
 	}
-	x, ok := d.GetOk(name)
-	if ok {
-		log.Printf("getFromDefaultsOrResource(98) field %s = %#v", name, x)
-		str, ok := x.(string)
+
+	if dok {
+		str, ok := dv.(string)
 		if ok {
-			log.Printf("getFromDefaultsOrResource(101) field %s = %#v", name, str)
 			result = str
 			found = true
 		}
-		log.Printf("getFromDefaultsOrResource(105) field %s = %#v", name, str)
 	}
-	if found != true && name != "computed" { // TODO
-		return "", fmt.Errorf("missing required field %s in %v or %v", name, defaults, x)
+	if found != true && required {
+		return "", fmt.Errorf("missing required field %s in %v or %#v", name, defaults, dv)
 	}
 	return result, nil
 }
@@ -147,27 +136,33 @@ func pickle(event string, data interface{}) {
 	}
 	defer func() { _ = fd.Close() }()
 }
-func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error) {
+func do(event string, d *schema.ResourceData, providerConfig interface{}) (bool, error) {
 	// TODO Make nicer code
 	id := d.Id()
-	for _, n := range []string{"script", "executor", "id_key"} {
+	log.Printf("do() %s %s %#v", id, event, providerConfig)
+	for _, n := range []string{"script", "executor", "id_key", "computed", "environment"} {
 		log.Printf("do() ResourceData field %s = %#v", n, d.Get(n))
 	}
-
-	def, ok := defaults.(map[string]interface{})
-	if !ok {
-		return false, fmt.Errorf("was expecting map[string]interface{} in 'environment', got %v", defaults)
+	var effectiveDefaults = map[string]interface{}{}
+	if providerConfig != nil {
+		var ok bool
+		effectiveDefaults, ok = providerConfig.(map[string]interface{})
+		if !ok {
+			return false, fmt.Errorf("was expecting map[string]interface{} in provider configuration, got %#v", providerConfig)
+		}
 	}
-	for _, k := range []string{"id_key", "executor", "script", "computed"} {
-		value, err := getFromDefaultsOrResource(k, def, d)
+	for k, required := range map[string]bool{"id_key": true, "executor": true, "script": true, "computed": false, "environment": false} {
+		dv, dok := d.GetOk(k)
+		value, err := getFromDefaultsOrResource(k, effectiveDefaults, dv, dok, required)
 		if err != nil {
 			return false, err
 		}
-		def[k] = value
+		effectiveDefaults[k] = value
 		log.Printf("getFromDefaultsOrResource => field %s = %#v", k, value)
 	}
+	log.Printf("effectiveDefaults = %#v", effectiveDefaults)
 	var idKey string
-	if idk, ok := def["id_key"]; ok {
+	if idk, ok := effectiveDefaults["id_key"]; ok {
 		idKey = idk.(string)
 	} else {
 		idKey = "no id key!"
@@ -193,21 +188,21 @@ func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error
 	}
 	log.Printf("Executing: %s", string(datab))
 
-	cmd := exec.Command(def["executor"].(string), def["script"].(string), event)
+	cmd := exec.Command(effectiveDefaults["executor"].(string), effectiveDefaults["script"].(string), event)
 	cmd.Env = os.Environ()
 	cmd.Env = append(cmd.Env, fmt.Sprintf("%s=%s", idKey, id))
-	for k, v := range def {
+	for k, v := range effectiveDefaults {
 		if s, ok := v.(string); ok {
 			e := fmt.Sprintf("%s=%s", k, s)
 			cmd.Env = append(cmd.Env, e)
-			log.Printf("Executing: environ default: %s", e)
+			log.Printf("Executing: with env var from default: %s", e)
 		}
 		if k == "environment" {
 			if env, ok := v.(map[string]interface{}); ok {
 				for envname, enval := range env {
 					e := fmt.Sprintf("%s=%s", envname, enval)
 					cmd.Env = append(cmd.Env, e)
-					log.Printf("Executing: environ environment: %s", e)
+					log.Printf("Executing: with env var from environment': %s", e)
 				}
 			}
 		}
@@ -251,7 +246,7 @@ func do(event string, d *schema.ResourceData, defaults interface{}) (bool, error
 		}
 		// Now move the computed fields into a separate "computed" attribute to avoid scrutiny by TF
 		computed := make(map[string]interface{})
-		cf := def["computed"]
+		cf := effectiveDefaults["computed"]
 		log.Printf("Executed: computed fields: %s", cf)
 		computedFields := make([]string, 3)
 		cfjson, ok := cf.(string)

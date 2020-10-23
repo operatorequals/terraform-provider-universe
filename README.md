@@ -40,7 +40,7 @@ $ make build
 Check the `examples/` directory
 
 Here an example of a provider which creates a json file in /tmp and stores data in it. 
-This is implemented in the json-file example directory.
+This is implemented in the json_file example directory.
 
 
 ## Example TF
@@ -55,15 +55,18 @@ terraform {
       source = "github.com/mobfox/multiverse"
       version = ">=0.0.1"
     }
+    linux = {
+      source = "github.com/mobfox/linux"
+      version = ">=0.0.1"
+    }
   }
 }
 provider "multiverse" {
   executor = "python3"
-  script = "json-file.py"
+  script = "json_file.py"
   id_key = "filename"
   environment = {
     api_token = "redacted"
-    // example environment
     servername = "api.example.com"
     api_token = "redacted"
   }
@@ -71,24 +74,17 @@ provider "multiverse" {
     "created"])
 }
 
-resource "json-file" "h" {
-  provider = multiverse // because Terraform does not scan local providers for resource types.
-  executor = "python3"
-  script = "json-file.py"
-  id_key = "filename"
-  computed = jsonencode([
-    "created"])
+resource "multiverse_json_file" "h" {
   config = jsonencode({
     "name": "Don't Step On My Blue Suede Shoes",
     "created-by" : "Elvis Presley",
     "where" : "Gracelands"
-    "hit" : "yes"
+    "hit" : "Gold"
 
   })
 }
 
-resource "json-file" "hp" {
-  provider = multiverse // because Terraform does not scan local providers for resource types.
+resource "multiverse_json_file" "hp" {
   config = jsonencode({
     "name": "Another strange resource",
     "main-character" : "Harry Potter",
@@ -100,30 +96,24 @@ resource "json-file" "hp" {
   })
 }
 
-resource "json-file" "i" {
-  provider = multiverse // because Terraform does not scan local providers for resource types.
+resource "linux_json_file" "i" { // Requires a plugin copy of multiverse
+  executor = "python3"
+  script = "json_file.py"
+  id_key = "filename"
+  computed = jsonencode(["created"])
   config = jsonencode({
     "name": "Fake strange resource"
   })
 }
 
 output "hp_name" {
-  value = "${jsondecode(json-file.hp.config)["name"]}"
+  value = jsondecode(multiverse_json_file.hp.config)["name"]
 }
 
 output "hp_created" {
-  value = "${jsondecode(json-file.hp.dynamic)["created"]}"
+  value = jsondecode(multiverse_json_file.hp.dynamic)["created"]
 }
-
 ```
-
-The statement 
-
-```hcl-terraform
-  provider = multiverse // because Terraform does not scan local providers for resource types.
-```
-
-Is required because Terraform does not scan local providers. See Terraform Issue [26659](https://github.com/hashicorp/terraform/issues/26659)
 
 - When you run `terraform apply` the resource will be created / updated
 - When you run `terraform destroy` the resource will be destroyed
@@ -145,10 +135,10 @@ date) of a resource. When you list these dynamic fields in the `computed` field 
 multiverse moves these fields into the `dynamic` field. The `dynamic` field is marked 'Computed' and is ignored by Terraform plan. As follows:
 
 ```hcl-terraform
-resource "json-file" "h" {
+resource "json_file" "h" {
   provider = multiverse // because Terraform does not scan local providers for resource types.
   executor = "python3"
-  script = "json-file.py"
+  script = "json_file.py"
   id_key = "filename"
   computed = jsonencode(["created"])
   config = jsonencode({
@@ -162,7 +152,7 @@ resource "json-file" "h" {
 After the plan is applied the tfstate file will then contain information:
 
 ```hcl-terraform
-resource "json-file" "h" {
+resource "json_file" "h" {
     computed = jsonencode(
         [
             "created",
@@ -187,7 +177,7 @@ In the executor script the `created` field is returned just like the others. No 
 
 ```python
 if event == "create":
-    # Create a unique file /tmp/json-file.pyXXXX and write the data to it
+    # Create a unique file /tmp/json_file.pyXXXX and write the data to it
     . . .
     input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
  
@@ -258,7 +248,7 @@ The `create` execution must have the id of the resource in the field named by th
 
 #### Example
 
-Your script could look something like the `json-file` example below. This script maintains files in the file system 
+Your script could look something like the `json_file` example below. This script maintains files in the file system 
 containing JSON data in the `config` field. The created datetime is returned as a dynamic field. 
 
 ```python
@@ -295,7 +285,7 @@ if __name__ == '__main__':
    input_dict = json.loads(input)
 
    if event == "create":
-        # Create a unique file /tmp/json-file.pyXXXX and write the data to it
+        # Create a unique file /tmp/json_file.pyXXXX and write the data to it
         ff = tempfile.NamedTemporaryFile(mode = 'w+',  prefix=script, delete=False)
         input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         ff.write(json.dumps(input_dict))
@@ -348,16 +338,36 @@ resource "spot_io_elastic_instance" "myapp" {
 ```
 The added `provider =` statement forces Terraform to use the multiverse provider for the resource. 
 
+## Adding Resource Types
+
+You can configure multiple resource types for the same provider, such as:
+
+```hcl-terraform
+resource "multiverse_database" "myapp" {
+  config = jsonencode({        
+         // . . .
+        })
+}
+resource "multiverse_network" "myapp" {
+  config = jsonencode({        
+         // . . .
+        })
+}
+
+```
+  
 We need to tell the provider which resource types it is providing to Terraform. By default, the only resource type
 it provides is the `multiverse` type. To enable other names set the environment variable 'TERRAFORM_MULTIVERSE_RESOURCETYPES' 
-include the resource type names in a comma-separated list such as this:
+include the resource type names in a space-separated list such as this:
 ```shell script
-export TERRAFORM_MULTIVERSE_RESOURCETYPES='spot_io_elastic_instance,json-file,postgres-db'
+export TERRAFORM_MULTIVERSE_RESOURCETYPES='database network'
 ```
-## Multiple provider names
-If you have duplicated the provider (see 'Renaming the Provider') then because the RESOURCETYPES variable name is of the form:
-`TERRAFORM_{providername upper case}_RESOURCETYPES` , you can use the new name. e.g. `TERRAFORM_ALPHA_RESOURCETYPES`
-
+### Multiple Provider Names and Resource Types
+If you have duplicated the provider (see 'Renaming the Provider') you can still use the RESOURCETYPES variable name. 
+It is of the form: `TERRAFORM_{providername upper case}_RESOURCETYPES`. Hence you can use the new name. e.g.
+```shell script
+export TERRAFORM_LINUX_RESOURCETYPES='json_file network_interface directory'
+```
 
 ## Configuring the Provider
 
@@ -375,19 +385,17 @@ provider "multiverse" {
     api_token = "redacted"
   }
   executor = "python3"
-  script = "json-file.py"
+  script = "json_file.py"
   id_key = "id"
 }
 
-resource "alpha" "h1" {
-  provider = multiverse
+resource "multiverse_alpha" "h1" {
   config = jsonencode({
       "name": "test-terraform-test-1",
     })
 }
 
-resource "alpha" "h2" {
-  provider = multiverse
+resource "multiverse_alpha" "h2" {
   script = "hello_world_v2.py"
   config = jsonencode({
       "name": "test-terraform-test-2",
@@ -398,8 +406,16 @@ resource "alpha" "h2" {
 
 ## Renaming the Provider
 
+From the Terraform manual:
+
+> Resource names are nouns, since resource blocks each represent a single object Terraform is managing. Resource names must always start with their containing provider's name followed by an underscore, so a resource from the provider postgresql might be named postgresql_database.
+
 You can rename the provider itself. This could be to 'fake out' a normal provider to investigate its behaviour or 
-emulate a defunct provider. This can be achieved by copying or linking to the provider binary file with a 
+emulate a defunct provider. 
+
+Or maybe you just want a name you prefer. 
+
+This can be achieved by copying or linking to the provider binary file with a 
 name inclusive of the provider name:
 
 ```shell script
@@ -426,6 +442,14 @@ terraform {
 ```
 How does this work? The provider extracts the name of the provider from its own executable. By default, the multiverse provider sets the default resource type
 to the same as the provider name.  
+
+#### Renaming the Provider in Test or Debuggers
+
+When a test harness or debugger uses a random name for the provider, you can override this with the environment variable `TERRAFORM_MULTIVERSE_PROVIDERNAME`. as in:
+
+```shell script
+$ export TERRAFORM_MULTIVERSE_PROVIDERNAME=multiverse
+```
 
 ## Developing the Provider
 

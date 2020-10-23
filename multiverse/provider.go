@@ -10,38 +10,73 @@ import (
 	"strings"
 )
 
-// getResourceNamesFromEnvironment
-// assuming the environment has a variable MULTIVERSE_RESOURCENAMES containign a
-// comma-seperated list of resource names.
-// Return a []string of the names plus "multiverse"
-func getResourceNamesFromEnvironment(providerName string) (result []string) {
-	result = make([]string, 10)
-	resourceNamesName := "TERRAFORM_" + strings.ToUpper(providerName) + "_RESOURCENAMES"
-	resourceNames, ok := os.LookupEnv(resourceNamesName)
+const (
+	DefaultProviderName = "multiverse"
+	EnvProviderNameVar  = "TERRAFORM_MULTIVERSE_PROVIDERNAME"
+)
+
+// getProviderNameFromBinaryOrEnvironment
+// if the user has explicitly specified provier name in env var use it,
+// otherwise look for it in th binary name after "terraform-provider-"
+// but if debugging or testing the binary name is junk e.g. 'debug.test'
+// so provide a default.
+func getProviderNameFromBinaryOrEnvironment() (name string) {
+	const TFP string = "terraform-provider-"
+
+	name, ok := os.LookupEnv(EnvProviderNameVar)
 	if ok {
-		result = strings.Split(resourceNames, ",")
+		return // env var overrides binary name
 	}
-	result = append(result, providerName)
+	binaryName := filepath.Base(os.Args[0])
+	if strings.HasPrefix(binaryName, TFP) {
+		name = strings.TrimPrefix(binaryName, TFP)
+		return
+	}
+	name = DefaultProviderName
+	return
+}
+
+// getResourceTypeNamesFromEnvironment
+// assuming the environment has a variable MULTIVERSE_RESOURCENAMES containing a
+// comma-separated list of resource names.
+// Return a []string of the names plus "multiverse"
+func getResourceTypeNamesFromEnvironment(providerName string) (result map[string]bool) {
+	result = map[string]bool{providerName: true}
+	prefix := providerName + "_"
+
+	resourceTypesVarName := "TERRAFORM_" + strings.ToUpper(providerName) + "_RESOURCETYPES"
+	resourceTypeNames, ok := os.LookupEnv(resourceTypesVarName)
+	if !ok {
+		return
+	}
+	f := strings.Fields(resourceTypeNames)
+
+	for _, x := range f {
+		rtn := x
+		if !strings.HasPrefix(x, prefix) { // Enforce rule that resource type names must be providername '_' resoyrcetypename
+			rtn = prefix + x
+		}
+		result[rtn] = true
+	}
 	return
 }
 
 func getResourceMap(providerName string) (result map[string]*schema.Resource) {
 	result = make(map[string]*schema.Resource)
-	for _, resourceName := range getResourceNamesFromEnvironment(providerName) {
+	for resourceName := range getResourceTypeNamesFromEnvironment(providerName) {
 		result[resourceName] = resourceCustom()
 	}
+	log.Printf("resourceMap is: %#v\n", result)
 	return
 }
 
 // Provider ...
 func Provider() *schema.Provider {
 	// Get the provider name to use
-	binaryName := filepath.Base(os.Args[0])
-	providerName := strings.TrimPrefix(binaryName, "terraform-provider-")
-
+	providerName := getProviderNameFromBinaryOrEnvironment()
+	log.Printf("multiverse provider name is: %s\n", providerName)
 	// Get the resource names
 	resourceMap := getResourceMap(providerName)
-	log.Printf("multiverse provider name : %s\n", providerName)
 	for n := range resourceMap {
 		log.Printf("provider %s has resource %s\n", providerName, n)
 	}
@@ -81,23 +116,22 @@ func Provider() *schema.Provider {
 		},
 	}
 	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
-		result := map[string]interface{}{}
-		e, ok := d.GetOk("environment")
-		if !ok {
-			return "", nil
-		}
-		_, ok = e.(map[string]interface{})
-		if !ok {
-			return nil, fmt.Errorf("as expecting map[string]interface{} in 'environment', got %v", e)
-		}
-		for _, key := range []string{"id_key", "executor", "script", "environment"} {
+		configurationData := map[string]interface{}{}
+		for _, key := range []string{"id_key", "executor", "script", "environment", "computed"} {
 			val, ok := d.GetOk(key)
 			if !ok {
 				continue
 			}
-			result[key] = val
+			configurationData[key] = val
 		}
-		return result, nil
+		// Just check the environment is a map
+		e, ok := d.GetOk("environment")
+		if ok {
+			if _, ok = e.(map[string]interface{}); !ok {
+				return nil, fmt.Errorf("as expecting map[string]interface{} in 'environment', got %#v", e)
+			}
+		}
+		return configurationData, nil
 	}
 
 	return p
