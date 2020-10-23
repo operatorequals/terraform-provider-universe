@@ -16,7 +16,7 @@ const (
 )
 
 // getProviderNameFromBinaryOrEnvironment
-// if the user has explicitly specified provier name in env var use it,
+// if the user has explicitly specified provider name in env var use it,
 // otherwise look for it in th binary name after "terraform-provider-"
 // but if debugging or testing the binary name is junk e.g. 'debug.test'
 // so provide a default.
@@ -37,8 +37,8 @@ func getProviderNameFromBinaryOrEnvironment() (name string) {
 }
 
 // getResourceTypeNamesFromEnvironment
-// assuming the environment has a variable MULTIVERSE_RESOURCENAMES containing a
-// comma-separated list of resource names.
+// Assuming the environment has a variable TERRAFORM_MULTIVERSE_RESOURCETYPES containing a
+// whitespace-separated list of resource names.
 // Return a []string of the names plus "multiverse"
 func getResourceTypeNamesFromEnvironment(providerName string) (result map[string]bool) {
 	result = map[string]bool{providerName: true}
@@ -75,6 +75,7 @@ func Provider() *schema.Provider {
 	// Get the provider name to use
 	providerName := getProviderNameFromBinaryOrEnvironment()
 	log.Printf("multiverse provider name is: %s\n", providerName)
+
 	// Get the resource names
 	resourceMap := getResourceMap(providerName)
 	for n := range resourceMap {
