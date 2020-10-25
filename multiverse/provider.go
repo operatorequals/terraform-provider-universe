@@ -114,11 +114,17 @@ func Provider() *schema.Provider {
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringIsJSON,
 			},
+			"javascript": {
+				Description:   "JavaScript to be executed internally by the Otto JavaScript interpreter.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"script", "executor", "environment"},
+			},
 		},
 	}
 	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
 		configurationData := map[string]interface{}{}
-		for _, key := range []string{"id_key", "executor", "script", "environment", "computed"} {
+		for _, key := range []string{"id_key", "executor", "script", "environment", "computed", "javascript"} {
 			val, ok := d.GetOk(key)
 			if !ok {
 				continue

@@ -71,6 +71,12 @@ func resourceCustom() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
+			"javascript": {
+				Description:   "JavaScript to be executed internally by the Otto JavaScript interpreter.",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ConflictsWith: []string{"script", "executor"},
+			},
 		},
 	}
 }
@@ -142,9 +148,9 @@ func pickle(event string, data interface{}) {
 	defer func() { _ = fd.Close() }()
 }
 
-// One function to handle all the CRUDE. Returns with bool for 'exit'  all other responses
+// callExecutor - function to handle all the CRUDE. Returns with bool for 'exit'  all other responses
 // are made in updates of the schema.ResourceData.
-func callExecutor(event string, d *schema.ResourceData, providerConfig interface{}) (bool, error) {
+func callExecutor(event string, d ResourceLike, providerConfig interface{}) (bool, error) {
 
 	effectiveDefaults, id, err := extractEssentialFields(event, d, providerConfig)
 	if err != nil {
@@ -158,6 +164,15 @@ func callExecutor(event string, d *schema.ResourceData, providerConfig interface
 		return false, err
 	}
 	log.Printf("Executing: %s", string(configData))
+
+	if _, ok := effectiveDefaults["javascript"]; ok {
+		config := map[string]interface{}{}
+		err := json.Unmarshal(configData, &config)
+		if err != nil {
+			return false, fmt.Errorf("expected JSON in 'config' but got: %#v", string(configData))
+		}
+		return callJavaScriptInterpreter(event, d, effectiveDefaults, id, config)
+	}
 
 	cmd := exec.Command(effectiveDefaults["executor"].(string), effectiveDefaults["script"].(string), event)
 	cmd.Env = makeEnvironment(id, effectiveDefaults)
@@ -231,7 +246,7 @@ func callExecutor(event string, d *schema.ResourceData, providerConfig interface
 
 // moveComputedFields - Move the fields specified in effectiveDefaults["computed"] from responseMap into
 // a returned map[]string encoded into JSON. Delete computed fields from the responseMap.
-func moveComputedFields(effectiveDefaults map[string]interface{}, d *schema.ResourceData, responseMap map[string]interface{}) ([]byte, error) {
+func moveComputedFields(effectiveDefaults map[string]interface{}, d ResourceLike, responseMap map[string]interface{}) ([]byte, error) {
 	computed := make(map[string]interface{})
 	cf := effectiveDefaults["computed"]
 	log.Printf("Executed: computed fields: %s", cf)
@@ -310,14 +325,15 @@ func makeEnvironment(id string, effectiveDefaults map[string]interface{}) []stri
 
 // extractEssentialFields - get the important fields from the provider config or resourceData.
 // returning the a map[string] of the fields and the id field
-func extractEssentialFields(event string, d *schema.ResourceData, providerConfig interface{}) (map[string]interface{}, string, error) {
+func extractEssentialFields(event string, d ResourceLike, providerConfig interface{}) (map[string]interface{}, string, error) {
 	essentialFields := map[string]bool{
 		// map[field name]mandatory?
 		"computed":    false,
 		"environment": false,
-		"executor":    true,
+		"executor":    false,
 		"id_key":      true,
-		"script":      true,
+		"script":      false,
+		"javascript":  false,
 	}
 	stringFields := []string{"id_key", "executor", "script"}
 
@@ -355,7 +371,7 @@ func extractEssentialFields(event string, d *schema.ResourceData, providerConfig
 }
 
 // getConfigFromTF - Validate and extract the 'config' JSON field from the resourceData, returning []byte
-func getConfigFromTF(d *schema.ResourceData) ([]byte, error) {
+func getConfigFromTF(d ResourceLike) ([]byte, error) {
 	dr, ok := d.GetOk("config")
 	if !ok || dr == nil {
 		return nil, fmt.Errorf("missing 'config'")

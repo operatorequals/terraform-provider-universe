@@ -21,3 +21,4 @@ pkg/
 .terraform/
 terraform-provider-multiverse
 vendor
+.vscode

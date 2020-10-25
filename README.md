@@ -3,14 +3,14 @@ Terraform Provider Multiverse
 
 You can use this provider instead of writing your own Terraform Custom Provider in the Go language. Just write your 
 logic in any language you prefer (python, node, java, shell) and use it with this provider. You can write a script that
-will be used to create, update or destroy external resources that are not supported by Terraform providers.
+will be used to create, update or destroy external resources that are not supported by Terraform providers. 
 
 Maintainers
 -----------
 
 The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the original provider. 
 
-This is the birchb1024 fork, maintained by Peter Birch.
+This is the birchb1024 fork, maintained by Peter Birch. This fork is no longer compatible with the original.
 
 Requirements
 ------------
@@ -220,7 +220,7 @@ ${jsondecode(multiverse.myresource.config)["capacity"]}
 This will give you flexibility in passing your arguments with mixed types. We couldn't define a with generic mixed types, 
 if we used map then all attributes have to be explicitly defined in the schema or all its attributes have the same type.
 
-# Writing an Executor Script
+## Writing an Executor Script
 
 A executor script must accept a single argument (the event), it must read a single 
 JSON expression from its standard input and output one on stdout. The script must be able to handle the TF event and the JSON payload *config*
@@ -236,7 +236,7 @@ Provider configuration data is passed in these environment variables:
 * `script` - _as per the TF source files described above_.
 * `id_key` - _as per the TF source files described above_.
 * `executor` - _as per the TF source files described above_.
-* `script` - _as per the TF source files described above_.
+* `computed` - _as per the TF source files described above_.
 
 The environment also contains attributes present in the `environment` section in the provider block.
 
@@ -450,6 +450,54 @@ When a test harness or debugger uses a random name for the provider, you can ove
 ```shell script
 $ export TERRAFORM_MULTIVERSE_PROVIDERNAME=multiverse
 ```
+
+## Using the Embedded JavaScript Interpreter
+
+As well as sub-process `executors`, multiverse also includes the [Otto JavaScript Interpreter](https://github.com/robertkrimen/otto). 
+This means you can code in JavaScript without needing an external language or program. 
+Since Otto does not have file handling or networking functions it is not suitable for writing resource providers - but this may change.
+The `javascript` field identifies the JavaScript source file to run from the current directory:
+
+````hcl-terraform
+provider "multiverse" {
+  id_key = "id"
+  computed = jsonencode([
+    "created"])
+  javascript = "echo.js"
+}
+````
+When the provider starts the interpreter starts it sets these global variables:
+
+* variable defined by `id_key` is set to the resource's id
+* variable `config` is set to the resource config (unpacked)
+* variable `event` is set to the terraform event (create, update etc)
+* variable `id_key`
+* variable `javascript`
+* variable `computed`
+
+The last statement of the script must evaluate to a map of strings containing the resource configuration in "config" 
+for example in this script we echo the incoming config on the last line.
+
+````javascript
+if (event == "create") {
+    config[id_key] = "42";
+    config["created"] = new Date().toLocaleString();
+}
+config
+````
+
+If the event is `create` the new ID must be returned in the `config[id_key]` field.
+
+Otto may be run standalone via the `otto` command.
+
+Refer to the Otto documentation for facilities of the JavaScript interpreter. 
+
+
+
+
+
+
+
 
 ## Developing the Provider
 
