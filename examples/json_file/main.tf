@@ -1,3 +1,9 @@
+//
+// This example needs environment variables to specify resource types:
+//
+//   export TERRAFORM_MULTIVERSE_RESOURCETYPES='json_file'
+//   export TERRAFORM_LINUX_RESOURCETYPES='json_file'
+//
 terraform {
   required_version = ">= 0.13.0"
   required_providers {

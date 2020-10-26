@@ -1,6 +1,7 @@
 package multiverse
 
 import (
+	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -46,5 +47,14 @@ func TestGetResourceTypeNamesFromEnvironment(t *testing.T) {
 	t.Logf("%v", names)
 	if !reflect.DeepEqual(names, map[string]bool{"dugong_cats": true, "dugong_dogs": true, "dugong_hats": true, "dugong": true}) {
 		t.Fail()
+	}
+}
+
+func TestAccPreCheck(t *testing.T) {
+
+	testAccProvider := Provider()
+	err := testAccProvider.Configure(terraform.NewResourceConfigRaw(map[string]interface{}{}))
+	if err != nil {
+		t.Fatal(err)
 	}
 }

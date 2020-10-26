@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 )
 
 func resourceCustom() *schema.Resource {
@@ -105,9 +106,9 @@ func onExists(d *schema.ResourceData, m interface{}) (bool, error) {
 	return callExecutor("exists", d, m)
 }
 
-func getFromDefaultsOrResource(name string, defaults map[string]interface{}, dv interface{}, dok bool, required bool) (string, error) {
+func getFromDefaultsOrResource(name string, defaults map[string]interface{}, d ResourceLike, required bool) (string, bool) {
 	//
-	log.Printf("getFromDefaultsOrResource() field %s in %#v or %#v, %#v %#v\n", name, defaults, dv, dok, required)
+	log.Printf("getFromDefaultsOrResource() field %s in %#v or %#v\n", name, defaults, required)
 
 	var result string
 	found := false
@@ -118,7 +119,7 @@ func getFromDefaultsOrResource(name string, defaults map[string]interface{}, dv 
 			found = true
 		}
 	}
-
+	dv, dok := d.GetOk(name)
 	if dok {
 		str, ok := dv.(string)
 		if ok {
@@ -126,26 +127,7 @@ func getFromDefaultsOrResource(name string, defaults map[string]interface{}, dv 
 			found = true
 		}
 	}
-	if found != true && required {
-		return "", fmt.Errorf("missing required field %s in %v or %#v", name, defaults, dv)
-	}
-	return result, nil
-}
-
-// pickle Save some struct to a file for later unpickling
-func pickle(event string, data interface{}) {
-
-	// Open a file and dump JSON to it!
-	fd, err := os.Create(event + ".json")
-	if err != nil {
-		panic(err)
-	}
-	enc := json.NewEncoder(fd)
-	err = enc.Encode(data)
-	if err != nil {
-		panic(err)
-	}
-	defer func() { _ = fd.Close() }()
+	return result, found
 }
 
 // callExecutor - function to handle all the CRUDE. Returns with bool for 'exit'  all other responses
@@ -173,8 +155,13 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 		}
 		return callJavaScriptInterpreter(event, d, effectiveDefaults, id, config)
 	}
+	pwd, _ := os.Getwd()
+	scriptPath, err := filepath.Abs(pwd + "/" + effectiveDefaults["script"].(string))
+	if err != nil {
+		return false, err
+	}
 
-	cmd := exec.Command(effectiveDefaults["executor"].(string), effectiveDefaults["script"].(string), event)
+	cmd := exec.Command(effectiveDefaults["executor"].(string), scriptPath, event)
 	cmd.Env = makeEnvironment(id, effectiveDefaults)
 
 	if event == "delete" {
@@ -335,7 +322,7 @@ func extractEssentialFields(event string, d ResourceLike, providerConfig interfa
 		"script":      false,
 		"javascript":  false,
 	}
-	stringFields := []string{"id_key", "executor", "script"}
+	stringFields := []string{"id_key", "executor", "script", "javascript"}
 
 	var effectiveDefaults = map[string]interface{}{}
 
@@ -354,17 +341,22 @@ func extractEssentialFields(event string, d ResourceLike, providerConfig interfa
 	}
 	// Extract essential fields from provider configuration or resource data
 	for k, required := range essentialFields {
-		dv, dok := d.GetOk(k)
-		value, err := getFromDefaultsOrResource(k, effectiveDefaults, dv, dok, required)
-		if err != nil {
-			return nil, "", err
+		value, found := getFromDefaultsOrResource(k, effectiveDefaults, d, required)
+		if found != true && required {
+			return effectiveDefaults, id, fmt.Errorf("missing required field %s in %v or %#v", k, effectiveDefaults, d)
+		}
+		if !found {
+			continue
 		}
 		effectiveDefaults[k] = value
 		log.Printf("getFromDefaultsOrResource => field %s = %#v", k, value)
 	}
+	// Ensure fields are string
 	for _, stringFieldName := range stringFields {
-		if _, ok := effectiveDefaults[stringFieldName].(string); !ok {
-			return effectiveDefaults, id, fmt.Errorf("expected %s to be string, but got %#v", stringFieldName, effectiveDefaults[stringFieldName])
+		if f, ok := effectiveDefaults[stringFieldName]; ok {
+			if _, ok := f.(string); !ok {
+				return effectiveDefaults, id, fmt.Errorf("expected %s to be string, but got %#v", stringFieldName, f)
+			}
 		}
 	}
 	return effectiveDefaults, id, nil
