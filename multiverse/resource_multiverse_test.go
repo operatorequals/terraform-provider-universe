@@ -108,3 +108,18 @@ func Test_callExecutorDelete(t *testing.T) {
 		t.FailNow()
 	}
 }
+
+func Test_callExecutorBad(t *testing.T) {
+	d := NewMockResource()
+	_ = d.Set("config", `{"album": "white"}`)
+	config := map[string]interface{}{
+		"id_key":   "id",
+		"computed": `["created"]`,
+		"executor": "", // Bad or wrong path to program
+		"script":   "resource_multiverse_test.py",
+	}
+	_, err := callExecutor("create", d, config)
+	if err == nil {
+		t.FailNow()
+	}
+}

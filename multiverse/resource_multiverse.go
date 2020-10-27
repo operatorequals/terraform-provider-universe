@@ -158,7 +158,10 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 	// Call the executor
 	rawResponse, err := cmd.Output()
 	if err != nil {
-		return false, fmt.Errorf("Command error: %s\n", string(err.(*exec.ExitError).Stderr))
+		if ee, ok := err.(*exec.ExitError); ok {
+			return false, fmt.Errorf("Command error: %s\n", string(ee.Stderr))
+		}
+		return false, err
 	}
 	response, err := jsonSafeUnmarshal(rawResponse, err)
 	if err != nil {
