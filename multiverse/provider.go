@@ -114,12 +114,6 @@ func Provider() *schema.Provider {
 				Type:         schema.TypeString,
 				ValidateFunc: validation.StringIsJSON,
 			},
-			"javascript": {
-				Description:   "JavaScript to be executed internally by the Otto JavaScript interpreter.",
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"script", "executor", "environment"},
-			},
 		},
 	}
 	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {

@@ -16,10 +16,8 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk v1.16.0
 	github.com/mitchellh/cli v1.1.2 // indirect
 	github.com/mitchellh/mapstructure v1.3.3 // indirect
-	github.com/robertkrimen/otto v0.0.0-20200922221731-ef014fd054ac
 	github.com/zclconf/go-cty v1.6.1 // indirect
 	github.com/zclconf/go-cty-yaml v1.0.2 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/net v0.0.0-20201016165138-7b1cca2348c0 // indirect
-	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )

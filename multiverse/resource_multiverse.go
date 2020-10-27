@@ -72,12 +72,6 @@ func resourceCustom() *schema.Resource {
 				Optional:     true,
 				ValidateFunc: validation.StringIsNotWhiteSpace,
 			},
-			"javascript": {
-				Description:   "JavaScript to be executed internally by the Otto JavaScript interpreter.",
-				Type:          schema.TypeString,
-				Optional:      true,
-				ConflictsWith: []string{"script", "executor"},
-			},
 		},
 	}
 }
@@ -147,14 +141,6 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 	}
 	log.Printf("Executing: %s", string(configData))
 
-	if _, ok := effectiveDefaults["javascript"]; ok {
-		config := map[string]interface{}{}
-		err := json.Unmarshal(configData, &config)
-		if err != nil {
-			return false, fmt.Errorf("expected JSON in 'config' but got: %#v", string(configData))
-		}
-		return callJavaScriptInterpreter(event, d, effectiveDefaults, id, config)
-	}
 	pwd, _ := os.Getwd()
 	scriptPath, err := filepath.Abs(pwd + "/" + effectiveDefaults["script"].(string))
 	if err != nil {
@@ -317,12 +303,11 @@ func extractEssentialFields(event string, d ResourceLike, providerConfig interfa
 		// map[field name]mandatory?
 		"computed":    false,
 		"environment": false,
-		"executor":    false,
+		"executor":    true,
 		"id_key":      true,
-		"script":      false,
-		"javascript":  false,
+		"script":      true,
 	}
-	stringFields := []string{"id_key", "executor", "script", "javascript"}
+	stringFields := []string{"id_key", "executor", "script"}
 
 	var effectiveDefaults = map[string]interface{}{}
 
@@ -342,7 +327,7 @@ func extractEssentialFields(event string, d ResourceLike, providerConfig interfa
 	// Extract essential fields from provider configuration or resource data
 	for k, required := range essentialFields {
 		value, found := getFromDefaultsOrResource(k, effectiveDefaults, d, required)
-		if found != true && required {
+		if (!found) && required {
 			return effectiveDefaults, id, fmt.Errorf("missing required field %s in %v or %#v", k, effectiveDefaults, d)
 		}
 		if !found {
