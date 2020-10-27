@@ -1,4 +1,4 @@
-module terraform-provider-multiverse
+module github.com/birchb1024/terraform-provider-multiverse
 
 go 1.15
 
