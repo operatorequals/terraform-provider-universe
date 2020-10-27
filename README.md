@@ -451,54 +451,6 @@ When a test harness or debugger uses a random name for the provider, you can ove
 $ export TERRAFORM_MULTIVERSE_PROVIDERNAME=multiverse
 ```
 
-## Using the Embedded JavaScript Interpreter
-
-As well as sub-process `executors`, multiverse also includes the [Otto JavaScript Interpreter](https://github.com/robertkrimen/otto). 
-This means you can code in JavaScript without needing an external language or program. 
-Since Otto does not have file handling or networking functions it is not suitable for writing resource providers - but this may change.
-The `javascript` field identifies the JavaScript source file to run from the current directory:
-
-````hcl-terraform
-provider "multiverse" {
-  id_key = "id"
-  computed = jsonencode([
-    "created"])
-  javascript = "echo.js"
-}
-````
-When the provider starts the interpreter starts it sets these global variables:
-
-* variable defined by `id_key` is set to the resource's id
-* variable `config` is set to the resource config (unpacked)
-* variable `event` is set to the terraform event (create, update etc)
-* variable `id_key`
-* variable `javascript`
-* variable `computed`
-
-The last statement of the script must evaluate to a map of strings containing the resource configuration in "config" 
-for example in this script we echo the incoming config on the last line.
-
-````javascript
-if (event == "create") {
-    config[id_key] = "42";
-    config["created"] = new Date().toLocaleString();
-}
-config
-````
-
-If the event is `create` the new ID must be returned in the `config[id_key]` field.
-
-Otto may be run standalone via the `otto` command.
-
-Refer to the Otto documentation for facilities of the JavaScript interpreter. 
-
-
-
-
-
-
-
-
 ## Developing the Provider
 
 
