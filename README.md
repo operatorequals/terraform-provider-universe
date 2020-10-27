@@ -19,6 +19,12 @@ This is the birchb1024 fork, maintained by Peter Birch. This fork is no longer c
 
 You can download binary versions in GitHub [here](https://github.com/birchb1024/terraform-provider-multiverse/releases)
 
+Otherwise, if you're a Golang user, you can `get` with
+
+```shell script
+    (cd /tmp; GO111MODULE=on go get github.com/birchb1024/terraform-provider-multiverse)
+```
+
 The [installer script](https://github.com/birchb1024/terraform-provider-multiverse/blob/master/scripts/install.sh) places
  the binary in the correct places to be picked up by Terraform `init`. Alternatively you can copy the `terraform-provider-multiverse` 
  file into the directories, ensuring the file mode is executable. Here's the layout:
