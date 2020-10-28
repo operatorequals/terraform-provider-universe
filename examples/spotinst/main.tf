@@ -3,7 +3,7 @@ terraform {
   required_providers {
     multiverse = {
       source = "github.com/mobfox/multiverse"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
   }
 }

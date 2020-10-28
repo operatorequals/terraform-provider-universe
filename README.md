@@ -34,7 +34,7 @@ The [installer script](https://github.com/birchb1024/terraform-provider-multiver
 ├── github.com
 │   └── mobfox
 │       └── multiverse
-│           └── 0.0.2
+│           └── 0.0.3
 │               └── linux_amd64
 │                   └── terraform-provider-multiverse
 └── terraform-provider-multiverse
@@ -65,11 +65,11 @@ terraform {
   required_providers {
     multiverse = {
       source = "github.com/mobfox/multiverse"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
     linux = {
       source = "github.com/mobfox/linux"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
   }
 }
@@ -420,7 +420,7 @@ name inclusive of the provider name:
 
 ```shell script
  # Move to the plugins directory wherein lies the provider
-cd ~/.terraform.d/plugins/github.com/mobfox/alpha/0.0.2/linux_amd64
+cd ~/.terraform.d/plugins/github.com/mobfox/alpha/0.0.3/linux_amd64
 # Copy the original file
 cp terraform-provider-multiverse  terraform-provider-spot_io_elastic_instance
 # or maybe link it
@@ -435,7 +435,7 @@ terraform {
   required_providers {
     spot_io_elastic_instance = {
       source = "github.com/mobfox/spot_io_elastic_instance"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
   }
 }
@@ -495,11 +495,11 @@ $HOME/.terraform.d/
     ├── github.com
     │   └── mobfox
     │       ├── alpha
-    │       │   └── 0.0.2
+    │       │   └── 0.0.3
     │       │       └── linux_amd64
     │       │           └── terraform-provider-alpha
     │       └── multiverse
-    │           └── 0.0.2
+    │           └── 0.0.3
     │               └── linux_amd64
     │                   ├── terraform-provider-alpha
     │                   └── terraform-provider-multiverse

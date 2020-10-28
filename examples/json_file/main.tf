@@ -9,11 +9,11 @@ terraform {
   required_providers {
     multiverse = {
       source = "github.com/mobfox/multiverse"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
     linux = {
       source = "github.com/mobfox/linux"
-      version = ">=0.0.2"
+      version = ">=0.0.3"
     }
   }
 }
