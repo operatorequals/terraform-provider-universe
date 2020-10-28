@@ -270,7 +270,6 @@ Provider configuration data is passed in these environment variables:
 * `script` - _as per the TF source files described above_.
 * `id_key` - _as per the TF source files described above_.
 * `executor` - _as per the TF source files described above_.
-* `computed` - _as per the TF source files described above_.
 
 The environment also contains attributes present in the `environment` section in the provider block. That's good for
 servernames and passwords which should not go via command-line arguments.

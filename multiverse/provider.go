@@ -111,7 +111,7 @@ func Provider() *schema.Provider {
 	}
 	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
 		configurationData := map[string]interface{}{}
-		for _, key := range []string{"id_key", "executor", "script", "environment", "computed", "javascript"} {
+		for _, key := range []string{"id_key", "executor", "script", "environment", "javascript"} {
 			val, ok := d.GetOk(key)
 			if !ok {
 				continue
