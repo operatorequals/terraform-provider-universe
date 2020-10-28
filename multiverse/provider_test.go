@@ -58,3 +58,18 @@ func TestAccPreCheck(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+func TestDiffSuppressComputed(t *testing.T) {
+
+	if false == diffSuppressComputed("k", "", "", nil) {
+		t.Fail()
+	}
+
+	if true == diffSuppressComputed("k", `{"@A": "23", "B":44 }`, `{"@A": 12}`, nil) {
+		t.Fail()
+	}
+
+	if true == diffSuppressComputed("k", `{"@A": "23", "B":44 }`, `{"@A": 12, "B": "44" }`, nil) {
+		t.Fail()
+	}
+
+}

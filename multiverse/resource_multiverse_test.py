@@ -19,7 +19,7 @@ if __name__ == '__main__':
         exit(0)
 
     if event in ["create", "update"]:
-        input_dict["created"] = "26/10/2020 18:55:51"
+        input_dict["@created"] = "26/10/2020 18:55:51"
         input_dict.update({"id": "42"})
     result = input_dict
     print(json.dumps(result))

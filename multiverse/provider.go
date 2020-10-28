@@ -3,7 +3,6 @@ package multiverse
 import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"log"
 	"os"
 	"path/filepath"
@@ -107,12 +106,6 @@ func Provider() *schema.Provider {
 				Elem: &schema.Schema{
 					Type: schema.TypeString,
 				},
-			},
-			"computed": {
-				Description:  "A list of fields (in JSON format) returned from the executor script which are computed dynamically.",
-				Optional:     true,
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringIsJSON,
 			},
 		},
 	}

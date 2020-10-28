@@ -1,8 +1,7 @@
 package multiverse
 
 import (
-	"fmt"
-	"reflect"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
 	"testing"
 )
 
@@ -32,7 +31,6 @@ func Test_callExecutorCreate(t *testing.T) {
 	_ = d.Set("config", `{"album": "white"}`)
 	config := map[string]interface{}{
 		"id_key":   "id",
-		"computed": `["created"]`,
 		"executor": "python3",
 		"script":   "resource_multiverse_test.py",
 	}
@@ -44,11 +42,9 @@ func Test_callExecutorCreate(t *testing.T) {
 		t.Fail()
 	}
 	c := d.Get("config")
-	if !reflect.DeepEqual(c, `{"album":"white"}`) {
-		t.Fail()
-	}
-	dyn := d.Get("dynamic")
-	if !reflect.DeepEqual(dyn, `{"created":"26/10/2020 18:55:51"}`) {
+	n1, _ := structure.NormalizeJsonString(c)
+	n2, _ := structure.NormalizeJsonString(`{"@created":"26/10/2020 18:55:51", "album":"white"}`)
+	if n1 != n2 {
 		t.Fail()
 	}
 }
@@ -58,7 +54,6 @@ func Test_callExecutorUpdate(t *testing.T) {
 	_ = d.Set("config", `{"album": "black"}`)
 	config := map[string]interface{}{
 		"id_key":   "id",
-		"computed": `["created"]`,
 		"executor": "python3",
 		"script":   "resource_multiverse_test.py",
 	}
@@ -67,11 +62,9 @@ func Test_callExecutorUpdate(t *testing.T) {
 		t.FailNow()
 	}
 	c := d.Get("config")
-	if !reflect.DeepEqual(c, `{"album":"black"}`) {
-		t.Fail()
-	}
-	dyn := d.Get("dynamic")
-	if !reflect.DeepEqual(dyn, `{"created":"26/10/2020 18:55:51"}`) {
+	n1, _ := structure.NormalizeJsonString(c)
+	n2, _ := structure.NormalizeJsonString(`{"@created":"26/10/2020 18:55:51", "album":"black"}`)
+	if n1 != n2 {
 		t.Fail()
 	}
 }
@@ -81,14 +74,12 @@ func Test_callExecutorExists(t *testing.T) {
 	_ = d.Set("config", `{"album": "white"}`)
 	config := map[string]interface{}{
 		"id_key":   "id",
-		"computed": `["created"]`,
 		"executor": "python3",
 		"script":   "resource_multiverse_test.py",
 	}
 	d.SetId("42")
 	exists, err := callExecutor("exists", d, config)
-	fmt.Printf("%#v %#v", exists, err)
-	if !exists {
+	if !exists || err != nil {
 		t.Fail()
 	}
 }
@@ -99,7 +90,6 @@ func Test_callExecutorDelete(t *testing.T) {
 	_ = d.Set("config", `{"album": "white"}`)
 	config := map[string]interface{}{
 		"id_key":   "id",
-		"computed": `["created"]`,
 		"executor": "python3",
 		"script":   "resource_multiverse_test.py",
 	}
@@ -114,7 +104,6 @@ func Test_callExecutorBad(t *testing.T) {
 	_ = d.Set("config", `{"album": "white"}`)
 	config := map[string]interface{}{
 		"id_key":   "id",
-		"computed": `["created"]`,
 		"executor": "", // Bad or wrong path to program
 		"script":   "resource_multiverse_test.py",
 	}

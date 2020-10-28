@@ -33,7 +33,7 @@ if __name__ == '__main__':
     if event == "create":
         # Create a unique file /tmp/json-file.pyXXXX and write the data to it
         ff = tempfile.NamedTemporaryFile(mode='w+', prefix=script, delete=False)
-        input_dict["created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+        input_dict["@created"] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         ff.write(json.dumps(input_dict))
         ff.close()
         input_dict.update({"filename": ff.name})  # Give the ID back to Terraform - it's the filename
@@ -50,6 +50,13 @@ if __name__ == '__main__':
             result = {}
 
     elif event == "update":
+        # First get the creation date if we can - need to save it again
+        fr = open(id, mode='r+')
+        old_data = fr.read()
+        fr.close()
+        if len(old_data) > 0:
+            oldinfo = json.loads(old_data)
+            input_dict['@created'] = oldinfo.get('@created', "unknown")
         # write the data out to the file given by the Id
         fu = open(id, mode='w+')
         fu.write(json.dumps(input_dict))

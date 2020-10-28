@@ -26,8 +26,6 @@ provider "multiverse" {
     servername = "api.example.com"
     api_token = "redacted"
   }
-  computed = jsonencode([
-    "created"])
 }
 
 resource "multiverse_json_file" "h" {
@@ -36,7 +34,7 @@ resource "multiverse_json_file" "h" {
     "created-by" : "Elvis Presley",
     "where" : "Gracelands"
     "hit" : "Gold"
-
+    "@created": null
   })
 }
 
@@ -48,7 +46,8 @@ resource "multiverse_json_file" "hp" {
     "likes" : [
       "Ginny Weasley",
       "Ron Weasley"
-    ]
+    ],
+    "@created": 23
   })
 }
 
@@ -56,7 +55,6 @@ resource "linux_json_file" "i" {
   executor = "python3"
   script = "json_file.py"
   id_key = "filename"
-  computed = jsonencode(["created"])
   config = jsonencode({
     "name": "Fake strange resource"
   })
@@ -67,5 +65,5 @@ output "hp_name" {
 }
 
 output "hp_created" {
-  value = jsondecode(multiverse_json_file.hp.dynamic)["created"]
+  value = jsondecode(multiverse_json_file.hp.config)["@created"]
 }

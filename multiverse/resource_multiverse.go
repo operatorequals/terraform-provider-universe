@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 )
 
 func resourceCustom() *schema.Resource {
@@ -41,29 +41,11 @@ func resourceCustom() *schema.Resource {
 			},
 
 			"config": {
-				Description:  "The information (in JSON format) managed by Terraform plan and apply.",
-				Type:         schema.TypeString,
-				Required:     true,
-				ValidateFunc: validation.StringIsJSON,
-				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
-					newJson, _ := structure.NormalizeJsonString(new)
-					oldJson, _ := structure.NormalizeJsonString(old)
-					return newJson == oldJson
-				},
-			},
-
-			"computed": {
-				Description:  "A list of fields (in JSON format) returned from the executor script which are computed dynamically.",
-				Optional:     true,
-				Type:         schema.TypeString,
-				ValidateFunc: validation.StringIsJSON,
-			},
-
-			"dynamic": {
-				Description: "Fields (in JSON format) returned from the executor script which are computed dynamically.",
-				Type:        schema.TypeString,
-				Optional:    true,
-				Computed:    true,
+				Description:      "The information (in JSON format) managed by Terraform plan and apply.",
+				Type:             schema.TypeString,
+				Required:         true,
+				ValidateFunc:     validation.StringIsJSON,
+				DiffSuppressFunc: diffSuppressComputed,
 			},
 
 			"id_key": {
@@ -74,6 +56,40 @@ func resourceCustom() *schema.Resource {
 			},
 		},
 	}
+}
+
+// diffSuppressComputed - Only different if the non @ fields have changed.
+// remove the @ fields from the two JSON strings and then compare them.
+func diffSuppressComputed(_, old, new string, _ *schema.ResourceData) bool {
+
+	removeComputed := func(jsonish string) string {
+		var x interface{}
+		err := json.Unmarshal([]byte(jsonish), &x)
+		if err != nil {
+			return ""
+		}
+		xmap, ok := x.(map[string]interface{})
+		if !ok {
+			return ""
+		}
+		for attrName := range xmap {
+			if strings.HasPrefix(attrName, "@") {
+				delete(xmap, attrName)
+			}
+		}
+		xbytes, err := json.Marshal(xmap)
+		if err != nil {
+			return ""
+		}
+		return string(xbytes[:])
+	}
+
+	newJson := removeComputed(new)
+	oldJson := removeComputed(old)
+
+	result := newJson == oldJson
+	log.Printf("diffSuppressComputed() %#v for %#v  %#v \n", result, old, new)
+	return result
 }
 
 func onCreate(d *schema.ResourceData, m interface{}) error {
@@ -182,14 +198,6 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 		if !ok {
 			return false, fmt.Errorf("expecting map[string]interface{} from subprocess, got '%#v'", string(rawResponse))
 		}
-		// Now move the computed fields into a separate "computed" attribute to avoid scrutiny by TF
-		computedAsJSONbytes, err := moveComputedFields(effectiveDefaults, d, responseMap)
-		if err != nil {
-			return false, err
-		}
-		_ = d.Set("dynamic", string(computedAsJSONbytes))
-		log.Printf("Executed: computed fields JSON is: %s", string(computedAsJSONbytes))
-
 		// Get the id_key field from the response and move it into the special id member in the resourceData
 		idKey := effectiveDefaults["id_key"].(string)
 		if event == "create" {
@@ -218,47 +226,6 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 	}
 
 	return false, err
-}
-
-// moveComputedFields - Move the fields specified in effectiveDefaults["computed"] from responseMap into
-// a returned map[]string encoded into JSON. Delete computed fields from the responseMap.
-func moveComputedFields(effectiveDefaults map[string]interface{}, d ResourceLike, responseMap map[string]interface{}) ([]byte, error) {
-	computed := make(map[string]interface{})
-	cf := effectiveDefaults["computed"]
-	log.Printf("Executed: computed fields: %s", cf)
-	computedFields := make([]string, 3)
-	cfjson, ok := cf.(string)
-	if !ok {
-		return nil, fmt.Errorf("expected string in 'computed' got %#v", cf)
-	}
-	err := json.Unmarshal([]byte(cfjson), &computedFields)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse JSON in 'computed' got %s", cfjson)
-	}
-	log.Printf("Executed: computed fields: %v", computedFields)
-
-	dynamics := make(map[string]interface{})
-	dynamic, ok := d.GetOk("dynamic")
-	if ok {
-		dynjson, ok := dynamic.(string)
-		if ok {
-			err = json.Unmarshal([]byte(dynjson), &dynamics)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	for _, name := range computedFields {
-		cv, ok := responseMap[name]
-		if ok {
-			computed[name] = cv
-			delete(responseMap, name)
-		} else {
-			computed[name] = dynamics[name]
-		}
-	}
-	computedAsJSONbytes, err := json.Marshal(computed)
-	return computedAsJSONbytes, err
 }
 
 // jsonSafeUnmarshal - copes with empty input
@@ -304,7 +271,6 @@ func makeEnvironment(id string, effectiveDefaults map[string]interface{}) []stri
 func extractEssentialFields(event string, d ResourceLike, providerConfig interface{}) (map[string]interface{}, string, error) {
 	essentialFields := map[string]bool{
 		// map[field name]mandatory?
-		"computed":    false,
 		"environment": false,
 		"executor":    true,
 		"id_key":      true,
