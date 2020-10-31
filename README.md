@@ -406,10 +406,6 @@ export TERRAFORM_LINUX_RESOURCETYPES='json_file network_interface directory'
 
 ## Renaming the Provider
 
-From the Terraform manual:
-
-> Resource names are nouns, since resource blocks each represent a single object Terraform is managing. Resource names must always start with their containing provider's name followed by an underscore, so a resource from the provider postgresql might be named postgresql_database.
-
 You can rename the provider itself. This could be to 'fake out' a normal provider to investigate its behaviour or 
 emulate a defunct provider. 
 
@@ -427,6 +423,12 @@ cp terraform-provider-universe  terraform-provider-spot_io_elastic_instance
 ln -s terraform-provider-universe  terraform-provider-spot_io_elastic_instance
 ```
 
+Alternatively, if you have the source repository checked out, the installer script will add a second provider:
+
+```shell script
+$ ./scripts/install.sh spot_io_elastic_instance
+```
+
 Then you need to configure the provider in your TF file:
 
 ```hcl-terraform
@@ -442,6 +444,7 @@ terraform {
 ```
 How does this work? The provider extracts the name of the provider from its own executable. By default, the universe provider sets the default resource type
 to the same as the provider name.  
+
 
 #### Renaming the Provider in Test or Debuggers
 
@@ -494,17 +497,11 @@ $HOME/.terraform.d/
 └── plugins
     ├── github.com
     │   └── birchb1024
-    │       ├── linux
-    │       │   └── 0.0.3
-    │       │       └── linux_amd64
-    │       │           └── terraform-provider-linux
     │       └── universe
     │           └── 0.0.3
     │               └── linux_amd64
     │                   └── terraform-provider-universe
-    ├── terraform-provider-linux
     └── terraform-provider-universe
 ```
-
 
 Feel free to contribute!
