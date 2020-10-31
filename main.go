@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/birchb1024/terraform-provider-multiverse/multiverse"
+	"github.com/birchb1024/terraform-provider-universe/universe"
 	"github.com/hashicorp/terraform-plugin-sdk/plugin"
 	"github.com/hashicorp/terraform-plugin-sdk/terraform"
 )
@@ -9,7 +9,7 @@ import (
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProviderFunc: func() terraform.ResourceProvider {
-			return multiverse.Provider()
+			return universe.Provider()
 		},
 	})
 }

@@ -1,4 +1,4 @@
-package multiverse
+package universe
 
 import (
 	"bytes"

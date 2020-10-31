@@ -19,7 +19,7 @@ src/
 pkg/
 .idea/
 .terraform/
-terraform-provider-multiverse
+terraform-provider-universe
 vendor
 .vscode
 P

@@ -1,4 +1,4 @@
-package multiverse
+package universe
 
 // A struct that conforms to the ResourceLike interface used for testing.
 type mockResource struct {

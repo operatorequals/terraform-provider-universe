@@ -1,15 +1,15 @@
 terraform {
   required_version = ">= 0.13.0"
   required_providers {
-    multiverse = {
-      source = "github.com/mobfox/multiverse"
+    universe = {
+      source = "github.com/birchb1024/universe"
       version = ">=0.0.3"
     }
   }
 }
 
 
-resource "multiverse" "spotinst_targetset_and_rules" {
+resource "universe" "spotinst_targetset_and_rules" {
   executor = "python3"
   script = "spotinst_mlb_targetset.py"
   id_key = "id"
@@ -28,17 +28,17 @@ resource "multiverse" "spotinst_targetset_and_rules" {
 }
 
 output "resources" {
-  value = "${multiverse.spotinst_targetset_and_rules.id}"
+  value = "${universe.spotinst_targetset_and_rules.id}"
 }
 
 output "test_data" {
-  value = "${multiverse.spotinst_targetset_and_rules.config}"
+  value = "${universe.spotinst_targetset_and_rules.config}"
 }
 
 output "test_targetset_id" {
-  value = "${jsondecode(multiverse.spotinst_targetset_and_rules.config)["testTargetSet"]}"
+  value = "${jsondecode(universe.spotinst_targetset_and_rules.config)["testTargetSet"]}"
 }
 
 //output "control_targetset_id" {
-//  value = "${multiverse.spotinst_targetset_and_rules.data["controlTargetSet"]}"
+//  value = "${universe.spotinst_targetset_and_rules.data["controlTargetSet"]}"
 //}

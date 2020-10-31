@@ -1,4 +1,4 @@
-package multiverse
+package universe
 
 // An interface with the schema.ResourceData methods actually used in the provider
 type ResourceLike interface {

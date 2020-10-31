@@ -1,4 +1,4 @@
-package multiverse
+package universe
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
@@ -32,7 +32,7 @@ func Test_callExecutorCreate(t *testing.T) {
 	config := map[string]interface{}{
 		"id_key":   "id",
 		"executor": "python3",
-		"script":   "resource_multiverse_test.py",
+		"script":   "resource_universe_test.py",
 	}
 	_, err := callExecutor("create", d, config)
 	if err != nil {
@@ -55,7 +55,7 @@ func Test_callExecutorUpdate(t *testing.T) {
 	config := map[string]interface{}{
 		"id_key":   "id",
 		"executor": "python3",
-		"script":   "resource_multiverse_test.py",
+		"script":   "resource_universe_test.py",
 	}
 	_, err := callExecutor("update", d, config)
 	if err != nil {
@@ -75,7 +75,7 @@ func Test_callExecutorExists(t *testing.T) {
 	config := map[string]interface{}{
 		"id_key":   "id",
 		"executor": "python3",
-		"script":   "resource_multiverse_test.py",
+		"script":   "resource_universe_test.py",
 	}
 	d.SetId("42")
 	exists, err := callExecutor("exists", d, config)
@@ -91,7 +91,7 @@ func Test_callExecutorDelete(t *testing.T) {
 	config := map[string]interface{}{
 		"id_key":   "id",
 		"executor": "python3",
-		"script":   "resource_multiverse_test.py",
+		"script":   "resource_universe_test.py",
 	}
 	_, err := callExecutor("delete", d, config)
 	if err != nil {
@@ -105,7 +105,7 @@ func Test_callExecutorBad(t *testing.T) {
 	config := map[string]interface{}{
 		"id_key":   "id",
 		"executor": "", // Bad or wrong path to program
-		"script":   "resource_multiverse_test.py",
+		"script":   "resource_universe_test.py",
 	}
 	_, err := callExecutor("create", d, config)
 	if err == nil {

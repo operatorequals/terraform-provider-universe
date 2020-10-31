@@ -1,4 +1,4 @@
-package multiverse
+package universe
 
 import (
 	"fmt"
@@ -10,8 +10,8 @@ import (
 )
 
 const (
-	DefaultProviderName = "multiverse"
-	EnvProviderNameVar  = "TERRAFORM_MULTIVERSE_PROVIDERNAME"
+	DefaultProviderName = "universe"
+	EnvProviderNameVar  = "TERRAFORM_UNIVERSE_PROVIDERNAME"
 )
 
 // getProviderNameFromBinaryOrEnvironment
@@ -36,9 +36,9 @@ func getProviderNameFromBinaryOrEnvironment() (name string) {
 }
 
 // getResourceTypeNamesFromEnvironment
-// Assuming the environment has a variable TERRAFORM_MULTIVERSE_RESOURCETYPES containing a
+// Assuming the environment has a variable TERRAFORM_UNIVERSE_RESOURCETYPES containing a
 // whitespace-separated list of resource names.
-// Return a []string of the names plus "multiverse"
+// Return a []string of the names plus "universe"
 func getResourceTypeNamesFromEnvironment(providerName string) (result map[string]bool) {
 	result = map[string]bool{providerName: true}
 	prefix := providerName + "_"
@@ -73,7 +73,7 @@ func getResourceMap(providerName string) (result map[string]*schema.Resource) {
 func Provider() *schema.Provider {
 	// Get the provider name to use
 	providerName := getProviderNameFromBinaryOrEnvironment()
-	log.Printf("multiverse provider name is: %s\n", providerName)
+	log.Printf("universe provider name is: %s\n", providerName)
 
 	// Get the resource names
 	resourceMap := getResourceMap(providerName)

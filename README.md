@@ -1,4 +1,4 @@
-# Terraform Provider Multiverse
+# Terraform Provider Universe
 
 You can use this provider instead of writing your own Terraform Custom Provider in the Go language. Just write your 
 logic in any language you prefer (python, node, java, shell) and use it with this provider. You can write a script that
@@ -6,9 +6,10 @@ will be used to create, update or destroy external resources that are not suppor
 
 ## Maintainers
 
-The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the original provider. 
+terraform-provider-universe is a fork of the multiverse provider. It is maintained by Peter Birch (birchb1024). 
+This fork is no longer compatible with the original hence it is renamed 'universe'
 
-This is the birchb1024 fork, maintained by Peter Birch. This fork is no longer compatible with the original.
+The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the original 'multiverse' provider. 
 
 ##Requirements
 
@@ -17,27 +18,27 @@ This is the birchb1024 fork, maintained by Peter Birch. This fork is no longer c
 
 ## Installing the Provider
 
-You can download binary versions in GitHub [here](https://github.com/birchb1024/terraform-provider-multiverse/releases)
+You can download binary versions in GitHub [here](https://github.com/birchb1024/terraform-provider-universe/releases)
 
 Otherwise, if you're a Golang user, you can `get` with
 
 ```shell script
-    (cd /tmp; GO111MODULE=on go get github.com/birchb1024/terraform-provider-multiverse)
+    (cd /tmp; GO111MODULE=on go get github.com/birchb1024/terraform-provider-universe)
 ```
 
-The [installer script](https://github.com/birchb1024/terraform-provider-multiverse/blob/master/scripts/install.sh) places
- the binary in the correct places to be picked up by Terraform `init`. Alternatively you can copy the `terraform-provider-multiverse` 
+The [installer script](https://github.com/birchb1024/terraform-provider-universe/blob/master/scripts/install.sh) places
+ the binary in the correct places to be picked up by Terraform `init`. Alternatively you can copy the `terraform-provider-universe` 
  file into the directories, ensuring the file mode is executable. Here's the layout:
 
 ```
 ~/.terraform.d/plugins/
 ├── github.com
-│   └── mobfox
-│       └── multiverse
+│   └── birchb1024
+│       └── universe
 │           └── 0.0.3
 │               └── linux_amd64
-│                   └── terraform-provider-multiverse
-└── terraform-provider-multiverse
+│                   └── terraform-provider-universe
+└── terraform-provider-universe
 ```
 
 # Using the provider
@@ -57,23 +58,23 @@ Here's a TF which creates three JSON files in /tmp.
 //
 // This example needs environment variables to specify resource types:
 //
-//   export TERRAFORM_MULTIVERSE_RESOURCETYPES='json_file'
+//   export TERRAFORM_UNIVERSE_RESOURCETYPES='json_file'
 //   export TERRAFORM_LINUX_RESOURCETYPES='json_file'
 //
 terraform {
   required_version = ">= 0.13.0"
   required_providers {
-    multiverse = {
-      source = "github.com/mobfox/multiverse"
+    universe = {
+      source = "github.com/birchb1024/universe"
       version = ">=0.0.3"
     }
     linux = {
-      source = "github.com/mobfox/linux"
+      source = "github.com/birchb1024/linux"
       version = ">=0.0.3"
     }
   }
 }
-provider "multiverse" {
+provider "universe" {
   executor = "python3"
   script = "json_file.py"
   id_key = "filename"
@@ -84,7 +85,7 @@ provider "multiverse" {
   }
 }
 
-resource "multiverse_json_file" "h" {
+resource "universe_json_file" "h" {
   config = jsonencode({
     "name": "Don't Step On My Blue Suede Shoes",
     "created-by" : "Elvis Presley",
@@ -94,7 +95,7 @@ resource "multiverse_json_file" "h" {
   })
 }
 
-resource "multiverse_json_file" "hp" {
+resource "universe_json_file" "hp" {
   config = jsonencode({
     "name": "Another strange resource",
     "main-character" : "Harry Potter",
@@ -117,11 +118,11 @@ resource "linux_json_file" "i" {
 }
 
 output "hp_name" {
-  value = jsondecode(multiverse_json_file.hp.config)["name"]
+  value = jsondecode(universe_json_file.hp.config)["name"]
 }
 
 output "hp_created" {
-  value = jsondecode(multiverse_json_file.hp.config)["@created"]
+  value = jsondecode(universe_json_file.hp.config)["@created"]
 }
 ```
 
@@ -144,7 +145,7 @@ an executor script, you can return new @ fields. As follows:
 
 ```hcl-terraform
 resource "json_file" "h" {
-  provider = multiverse // because Terraform does not scan local providers for resource types.
+  provider = universe // because Terraform does not scan local providers for resource types.
   executor = "python3"
   script = "json_file.py"
   id_key = "filename"
@@ -185,14 +186,14 @@ if event == "create":
 ### Configuring the Provider
 
 Terraform allows [configuration of providers](https://www.terraform.io/docs/configuration/providers.html#provider-configuration-1), 
-in a `'provider` clause. The multiverse provider also has fields where you specify the default executor, script and id fields.  
+in a `'provider` clause. The universe provider also has fields where you specify the default executor, script and id fields.  
 An additional field `environment` contains a map of environment variables which are passed to the script when it is executed. 
 
 This means you don't need to repeat the `executor` nad `script` each time you use the provider.  You can 
 override the defaults in the resource block as below.
 
 ```hcl-terraform
-provider "multiverse" {
+provider "universe" {
   environment = {
     servername = "api.example.com"
     api_token = "redacted"
@@ -202,13 +203,13 @@ provider "multiverse" {
   id_key = "id"
 }
 
-resource "multiverse_alpha" "h1" {
+resource "universe" "h1" {
   config = jsonencode({
       "name": "test-terraform-test-1",
     })
 }
 
-resource "multiverse_alpha" "h2" {
+resource "universe" "h2" {
   script = "hello_world_v2.py"
   config = jsonencode({
       "name": "test-terraform-test-2",
@@ -244,9 +245,9 @@ config = jsonencode(({
 you can access these attributes using variables and the jsondecode function:
 
 ```hcl-terraform
-${multiverse_custom_resource.my_custom_resource.id} # accessing id
-${jsondecode(multiverse.myresource.config)["name"]}
-${jsondecode(multiverse.myresource.config)["capacity"]}
+${universe_custom_resource.my_custom_resource.id} # accessing id
+${jsondecode(universe.myresource.config)["name"]}
+${jsondecode(universe.myresource.config)["capacity"]}
 ```
 
 #### Why the attribute *config* is JSON?
@@ -355,12 +356,12 @@ echo "{\"key\":\"value\"}" | id=testid001 python3 my_resource.py create
 ```
 ## Renaming the Resource Type
 
-In your Terraform source code you may not want to see the resource type `multiverse`. You might a 
+In your Terraform source code you may not want to see the resource type `universe`. You might a 
 better name, reflecting the actual resource type you're managing. So you might want this instead:
 
 ```hcl-terraform
 resource "spot_io_elastic_instance" "myapp" {
-  provider = "multiverse"
+  provider = "universe"
   executor = "python3"
   script = "spotinst_mlb_targetset.py"
   id_key = "id"
@@ -369,19 +370,19 @@ resource "spot_io_elastic_instance" "myapp" {
         })
 }
 ```
-The added `provider =` statement forces Terraform to use the multiverse provider for the resource. 
+The added `provider =` statement forces Terraform to use the universe provider for the resource. 
 
 ## Adding Resource Types
 
 You can configure multiple resource types for the same provider, such as:
 
 ```hcl-terraform
-resource "multiverse_database" "myapp" {
+resource "universe_database" "myapp" {
   config = jsonencode({        
          // . . .
         })
 }
-resource "multiverse_network" "myapp" {
+resource "universe_network" "myapp" {
   config = jsonencode({        
          // . . .
         })
@@ -390,10 +391,10 @@ resource "multiverse_network" "myapp" {
 ```
   
 We need to tell the provider which resource types it is providing to Terraform. By default, the only resource type
-it provides is the `multiverse` type. To enable other names set the environment variable 'TERRAFORM_MULTIVERSE_RESOURCETYPES' 
+it provides is the `universe` type. To enable other names set the environment variable 'TERRAFORM_UNIVERSE_RESOURCETYPES' 
 include the resource type names in a space-separated list such as this:
 ```shell script
-export TERRAFORM_MULTIVERSE_RESOURCETYPES='database network'
+export TERRAFORM_UNIVERSE_RESOURCETYPES='database network'
 ```
 ### Multiple Provider Names and Resource Types
 If you have duplicated the provider (see 'Renaming the Provider') you can still use the RESOURCETYPES variable name. 
@@ -419,11 +420,11 @@ name inclusive of the provider name:
 
 ```shell script
  # Move to the plugins directory wherein lies the provider
-cd ~/.terraform.d/plugins/github.com/mobfox/alpha/0.0.3/linux_amd64
+cd ~/.terraform.d/plugins/github.com/birchb1024/universe/0.0.3/linux_amd64
 # Copy the original file
-cp terraform-provider-multiverse  terraform-provider-spot_io_elastic_instance
+cp terraform-provider-universe  terraform-provider-spot_io_elastic_instance
 # or maybe link it
-ln -s terraform-provider-multiverse  terraform-provider-spot_io_elastic_instance
+ln -s terraform-provider-universe  terraform-provider-spot_io_elastic_instance
 ```
 
 Then you need to configure the provider in your TF file:
@@ -433,36 +434,36 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     spot_io_elastic_instance = {
-      source = "github.com/mobfox/spot_io_elastic_instance"
+      source = "github.com/birchb1024/spot_io_elastic_instance"
       version = ">=0.0.3"
     }
   }
 }
 ```
-How does this work? The provider extracts the name of the provider from its own executable. By default, the multiverse provider sets the default resource type
+How does this work? The provider extracts the name of the provider from its own executable. By default, the universe provider sets the default resource type
 to the same as the provider name.  
 
 #### Renaming the Provider in Test or Debuggers
 
-When a test harness or debugger uses a random name for the provider, you can override this with the environment variable `TERRAFORM_MULTIVERSE_PROVIDERNAME`. as in:
+When a test harness or debugger uses a random name for the provider, you can override this with the environment variable `TERRAFORM_UNIVERSE_PROVIDERNAME`. as in:
 
 ```shell script
-$ export TERRAFORM_MULTIVERSE_PROVIDERNAME=multiverse
+$ export TERRAFORM_UNIVERSE_PROVIDERNAME=universe
 ```
 
 ## Building The Provider
 
-Clone repository to: `$GOPATH/src/github.com/birchb1024/terraform-provider-multiverse`
+Clone repository to: `$GOPATH/src/github.com/birchb1024/terraform-provider-universe`
 
 ```sh
-$ mkdir -p $GOPATH/src/github.com/mobfox; cd $GOPATH/src/github.com/mobfox
-$ git clone git@github.com:birchb1024/terraform-provider-multiverse.git
+$ mkdir -p $GOPATH/src/github.com/birchb1024; cd $GOPATH/src/github.com/birchb1024
+$ git clone git@github.com:birchb1024/terraform-provider-universe.git
 ```
 
 Enter the provider directory and build the provider
 
 ```sh
-$ cd $GOPATH/src/github.com/mobfox/terraform-provider-multiverse
+$ cd $GOPATH/src/github.com/birchb1024/terraform-provider-universe
 $ make build
 ```
 
@@ -492,18 +493,17 @@ To install the provider in the usual places for the `terraform` program, run `ma
 $HOME/.terraform.d/
 └── plugins
     ├── github.com
-    │   └── mobfox
-    │       ├── alpha
+    │   └── birchb1024
+    │       ├── linux
     │       │   └── 0.0.3
     │       │       └── linux_amd64
-    │       │           └── terraform-provider-alpha
-    │       └── multiverse
+    │       │           └── terraform-provider-linux
+    │       └── universe
     │           └── 0.0.3
     │               └── linux_amd64
-    │                   ├── terraform-provider-alpha
-    │                   └── terraform-provider-multiverse
-    ├── terraform-provider-alpha
-    └── terraform-provider-multiverse
+    │                   └── terraform-provider-universe
+    ├── terraform-provider-linux
+    └── terraform-provider-universe
 ```
 
 
