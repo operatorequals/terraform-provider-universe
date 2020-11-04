@@ -35,7 +35,7 @@ The [installer script](https://github.com/birchb1024/terraform-provider-universe
 ├── github.com
 │   └── birchb1024
 │       └── universe
-│           └── 0.0.4
+│           └── 0.0.5
 │               └── linux_amd64
 │                   └── terraform-provider-universe
 └── terraform-provider-universe
@@ -66,11 +66,11 @@ terraform {
   required_providers {
     universe = {
       source = "github.com/birchb1024/universe"
-      version = ">=0.0.4"
+      version = ">=0.0.5"
     }
     linux = {
       source = "github.com/birchb1024/linux"
-      version = ">=0.0.4"
+      version = ">=0.0.5"
     }
   }
 }
@@ -416,7 +416,7 @@ name inclusive of the provider name:
 
 ```shell script
  # Move to the plugins directory wherein lies the provider
-cd ~/.terraform.d/plugins/github.com/birchb1024/universe/0.0.4/linux_amd64
+cd ~/.terraform.d/plugins/github.com/birchb1024/universe/0.0.5/linux_amd64
 # Copy the original file
 cp terraform-provider-universe  terraform-provider-spot_io_elastic_instance
 # or maybe link it
@@ -437,7 +437,7 @@ terraform {
   required_providers {
     spot_io_elastic_instance = {
       source = "github.com/birchb1024/spot_io_elastic_instance"
-      version = ">=0.0.4"
+      version = ">=0.0.5"
     }
   }
 }
@@ -498,7 +498,7 @@ $HOME/.terraform.d/
     ├── github.com
     │   └── birchb1024
     │       └── universe
-    │           └── 0.0.4
+    │           └── 0.0.5
     │               └── linux_amd64
     │                   └── terraform-provider-universe
     └── terraform-provider-universe

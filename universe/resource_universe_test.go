@@ -1,7 +1,7 @@
 package universe
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/helper/structure"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/structure"
 	"testing"
 )
 
@@ -38,7 +38,7 @@ func Test_callExecutorCreate(t *testing.T) {
 	if err != nil {
 		t.FailNow()
 	}
-	if d.id != "42" {
+	if d.Id() != "42" {
 		t.Fail()
 	}
 	c := d.Get("config")

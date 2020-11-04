@@ -9,11 +9,11 @@ terraform {
   required_providers {
     universe = {
       source = "github.com/birchb1024/universe"
-      version = ">=0.0.4"
+      version = ">=0.0.5"
     }
     linux = {
       source = "github.com/birchb1024/linux"
-      version = ">=0.0.4"
+      version = ">=0.0.5"
     }
   }
 }

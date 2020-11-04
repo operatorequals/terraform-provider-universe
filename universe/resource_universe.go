@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
 	"log"
 	"os"
 	"os/exec"
@@ -84,10 +84,10 @@ func diffSuppressComputed(_, old, new string, _ *schema.ResourceData) bool {
 		return string(xbytes[:])
 	}
 
-	newJson := removeComputed(new)
-	oldJson := removeComputed(old)
+	newJSON := removeComputed(new)
+	oldJSON := removeComputed(old)
 
-	result := newJson == oldJson
+	result := newJSON == oldJSON
 	log.Printf("diffSuppressComputed() %#v for %#v  %#v \n", result, old, new)
 	return result
 }
@@ -175,7 +175,7 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 	rawResponse, err := cmd.Output()
 	if err != nil {
 		if ee, ok := err.(*exec.ExitError); ok {
-			return false, fmt.Errorf("Command error: %s\n", string(ee.Stderr))
+			return false, fmt.Errorf("command error: %s", string(ee.Stderr))
 		}
 		return false, err
 	}

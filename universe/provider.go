@@ -1,8 +1,10 @@
 package universe
 
 import (
+	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,8 +12,10 @@ import (
 )
 
 const (
+	// DefaultProviderName ...
 	DefaultProviderName = "universe"
-	EnvProviderNameVar  = "TERRAFORM_UNIVERSE_PROVIDERNAME"
+	// EnvProviderNameVar - Name of the OS env var to override provider name
+	EnvProviderNameVar = "TERRAFORM_UNIVERSE_PROVIDERNAME"
 )
 
 // getProviderNameFromBinaryOrEnvironment
@@ -82,7 +86,8 @@ func Provider() *schema.Provider {
 	}
 
 	p := &schema.Provider{
-		ResourcesMap: resourceMap,
+		ConfigureContextFunc: providerConfigureV2,
+		ResourcesMap:         resourceMap,
 		Schema: map[string]*schema.Schema{
 			"id_key": {
 				Description: "The name of the key which holds the unique identifier of the resource. e.g. 'id'",
@@ -109,24 +114,33 @@ func Provider() *schema.Provider {
 			},
 		},
 	}
-	p.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
-		configurationData := map[string]interface{}{}
-		for _, key := range []string{"id_key", "executor", "script", "environment", "javascript"} {
-			val, ok := d.GetOk(key)
-			if !ok {
-				continue
-			}
-			configurationData[key] = val
-		}
-		// Just check the environment is a map
-		e, ok := d.GetOk("environment")
-		if ok {
-			if _, ok = e.(map[string]interface{}); !ok {
-				return nil, fmt.Errorf("as expecting map[string]interface{} in 'environment', got %#v", e)
-			}
-		}
-		return configurationData, nil
-	}
-
 	return p
+}
+
+// providerConfigureV2 - Map to normal function without lame, untestable v2 Diagnostics
+func providerConfigureV2(_ context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
+	result, err := providerConfigure(d)
+	if err != nil {
+		return result, diag.FromErr(err)
+	}
+	return result, nil
+}
+
+func providerConfigure(d ResourceLike) (interface{}, error) {
+	configurationData := map[string]interface{}{}
+	for _, key := range []string{"id_key", "executor", "script", "environment", "javascript"} {
+		val, ok := d.GetOk(key)
+		if !ok {
+			continue
+		}
+		configurationData[key] = val
+	}
+	// Just check the environment is a map
+	e, ok := d.GetOk("environment")
+	if ok {
+		if _, ok = e.(map[string]interface{}); !ok {
+			return nil, fmt.Errorf("environment - expected map[string]interface{} bit got %#v", e)
+		}
+	}
+	return configurationData, nil
 }

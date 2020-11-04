@@ -27,7 +27,9 @@ func (d *mockResource) Get(key string) interface{} {
 	}
 	return v
 }
-func NewMockResource() *mockResource {
+
+// NewMockResource - Make Fake
+func NewMockResource() ResourceLike {
 	var d mockResource
 	d.fields = map[string]interface{}{}
 	return &d

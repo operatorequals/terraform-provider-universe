@@ -1,7 +1,7 @@
 package universe
 
 import (
-	"github.com/hashicorp/terraform-plugin-sdk/terraform"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -14,6 +14,46 @@ func TestProvider(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+func TestProviderConfigure(t *testing.T) {
+	d := NewMockResource()
+	_ = d.Set("script", "S")
+	_ = d.Set("environment", map[string]interface{}{
+		"X": "2",
+	})
+	p, err := providerConfigure(d)
+	if err != nil {
+		t.FailNow()
+	}
+	pmap, ok := p.(map[string]interface{})
+	if !ok {
+		t.FailNow()
+	}
+	script, ok := pmap["script"].(string)
+	if !ok {
+		t.FailNow()
+	}
+	if script != "S" {
+		t.Fail()
+	}
+	env, ok := pmap["environment"]
+	if !ok {
+		t.FailNow()
+	}
+	envmap, ok := env.(map[string]interface{})
+	x, ok := envmap["X"]
+	if !ok {
+		t.Fail()
+	}
+	xs, ok := x.(string)
+	if !ok {
+		t.Fail()
+	}
+	if xs != "2" {
+		t.Fail()
+	}
+}
+
 func TestProviderNameFromBinaryOrEnvironment(t *testing.T) {
 	pn := "marigolds"
 	err := os.Setenv(EnvProviderNameVar, pn)
@@ -53,7 +93,7 @@ func TestGetResourceTypeNamesFromEnvironment(t *testing.T) {
 func TestAccPreCheck(t *testing.T) {
 
 	testAccProvider := Provider()
-	err := testAccProvider.Configure(terraform.NewResourceConfigRaw(map[string]interface{}{}))
+	err := testAccProvider.Configure(nil, terraform.NewResourceConfigRaw(map[string]interface{}{}))
 	if err != nil {
 		t.Fatal(err)
 	}
