@@ -23,3 +23,4 @@ terraform-provider-universe
 vendor
 .vscode
 P
+**/.terraform.lock.hcl

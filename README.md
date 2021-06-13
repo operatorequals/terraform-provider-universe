@@ -13,8 +13,8 @@ The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the origin
 
 ##Requirements
 
--	[Terraform](https://www.terraform.io/downloads.html) 0.13
--	[Go](https://golang.org/doc/install) 1.15.2 (to build the provider plugin)
+-	[Terraform](https://www.terraform.io/downloads.html) 1.0
+-	[Go](https://golang.org/doc/install) 1.16.5 (to build the provider plugin)
 
 ## Installing the Provider
 
