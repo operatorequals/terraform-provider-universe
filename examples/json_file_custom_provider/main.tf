@@ -1,8 +1,7 @@
 //
-// This example needs environment variables to specify resource types:
-//
-//   export TERRAFORM_UNIVERSE_RESOURCETYPES='json_file'
-//   export TERRAFORM_LINUX_RESOURCETYPES='json_file'
+// This example needs a terraform provider folder called 'jsonfile' created
+// in terraformd plugins folder with symbolic link to 'terraform-provider-universe'. 
+// See 'Renaming the provider' in README
 //
 terraform {
   required_version = ">= 0.13.0"

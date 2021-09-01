@@ -1,8 +1,7 @@
 //
-// This example needs environment variables to specify resource types:
-//
-//   export TERRAFORM_UNIVERSE_RESOURCETYPES='json_file'
-//   export TERRAFORM_LINUX_RESOURCETYPES='json_file'
+// This example needs a terraform provider folders called 'jsonfile', 'jsonfile2' created
+// in terraformd plugins folder with symbolic link to 'terraform-provider-universe'. 
+// See 'Renaming the provider' in README.
 //
 terraform {
   required_version = ">= 0.13.0"
@@ -25,7 +24,7 @@ provider "jsonfile" {
 
 provider "jsonfile2" {
   executor = "python3"
-  script = "json_file2.py"
+  script = "./code/json_file2.py"
   id_key = "filename"
 }
 
