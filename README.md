@@ -424,8 +424,8 @@ if __name__ == '__main__':
 ```
 
 Then, define a simple terraform file e.g. `jsonfile.tf` which creates a JSON file whose content is maintained by the terraform file below:
-```json
-terraforr {
+```hcl
+terraform {
   required_version = ">= 0.13.0"
   required_providers {
     jsonfile = {
