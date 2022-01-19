@@ -454,6 +454,11 @@ output "hp_name" {
 }
 ```
 
+Deploy the changes via terraform:
+```
+terraform apply
+```
+
 ## Renaming the Resource Type
 
 In your Terraform source code you may not want to see the resource type `universe`. You might a 
