@@ -6,7 +6,7 @@ will be used to create, update or destroy external resources that are not suppor
 
 ## Maintainers
 
-terraform-provider-universe is a fork of the multiverse provider. It is maintained by Peter Birch (birchb1024). 
+terraform-provider-universe is a fork of the multiverse provider. It is maintained by John Torakis (operatorequals). 
 This fork is no longer compatible with the original hence it is renamed 'universe'
 
 The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the original 'multiverse' provider. 
@@ -18,22 +18,22 @@ The MobFox DevOps team at [MobFox](https://www.mobfox.com/) maintains the origin
 
 ## Installing the Provider
 
-You can download binary versions in GitHub [here](https://github.com/birchb1024/terraform-provider-universe/releases)
+You can download binary versions in GitHub [here](https://github.com/operatorequals/terraform-provider-universe/releases)
 
 Otherwise, if you're a Golang user, you can `get` with
 
 ```shell script
-    (cd /tmp; GO111MODULE=on go get github.com/birchb1024/terraform-provider-universe)
+    (cd /tmp; GO111MODULE=on go get github.com/operatorequals/terraform-provider-universe)
 ```
 
-The [installer script](https://github.com/birchb1024/terraform-provider-universe/blob/master/scripts/install.sh) places
+The [installer script](https://github.com/operatorequals/terraform-provider-universe/blob/master/scripts/install.sh) places
  the binary in the correct places to be picked up by Terraform `init`. Alternatively you can copy the `terraform-provider-universe` 
  file into the directories, ensuring the file mode is executable. Here's the layout:
 
 ```
 ~/.terraform.d/plugins/
 ├── github.com
-│   └── birchb1024
+│   └── operatorequals
 │       └── universe
 │           └── 0.0.5
 │               └── linux_amd64
@@ -65,11 +65,11 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     universe = {
-      source = "github.com/birchb1024/universe"
+      source = "github.com/operatorequals/universe"
       version = ">=0.0.5"
     }
     linux = {
-      source = "github.com/birchb1024/linux"
+      source = "github.com/operatorequals/linux"
       version = ">=0.0.5"
     }
   }
@@ -429,7 +429,7 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     jsonfile = {
-      source = "github.com/birchb1024/jsonfile"
+      source = "github.com/operatorequals/jsonfile"
       version = ">=0.0.5"
     }
   }
@@ -521,14 +521,14 @@ name inclusive of the provider name:
 
 ```shell script
 # Move to the author directory
-cd ~/.terraform.d/plugins/github.com/birchb1024/
+cd ~/.terraform.d/plugins/github.com/operatorequals/
 # Create the sub-folders with same name upto the provider binary and traverse to it
 mkdir -p spot_io_elastic_instance/0.0.5/linux_amd64
 cd spot_io_elastic_instance/0.0.5/linux_amd64
 # Create a link to the binary
-ln -s ~/.terraform.d/plugins/github.com/birchb1024/universe/0.0.5/linux_amd64/terraform-provider-universe terraform-provider-spot_io_elastic_instance
+ln -s ~/.terraform.d/plugins/github.com/operatorequals/universe/0.0.5/linux_amd64/terraform-provider-universe terraform-provider-spot_io_elastic_instance
 # OR, copy it
-cp ~/.terraform.d/plugins/github.com/birchb1024/universe/0.0.5/linux_amd64/terraform-provider-universe terraform-provider-spot_io_elastic_instance
+cp ~/.terraform.d/plugins/github.com/operatorequals/universe/0.0.5/linux_amd64/terraform-provider-universe terraform-provider-spot_io_elastic_instance
 ```
 
 Alternatively, if you have the source repository checked out, the installer script will add a second provider:
@@ -544,7 +544,7 @@ terraform {
   required_version = ">= 0.13.0"
   required_providers {
     spot_io_elastic_instance = {
-      source = "github.com/birchb1024/spot_io_elastic_instance"
+      source = "github.com/operatorequals/spot_io_elastic_instance"
       version = ">=0.0.5"
     }
   }
@@ -564,17 +564,17 @@ $ export TERRAFORM_UNIVERSE_PROVIDERNAME=universe
 
 ## Building The Provider
 
-Clone repository to: `$GOPATH/src/github.com/birchb1024/terraform-provider-universe`
+Clone repository to: `$GOPATH/src/github.com/operatorequals/terraform-provider-universe`
 
 ```sh
-$ mkdir -p $GOPATH/src/github.com/birchb1024; cd $GOPATH/src/github.com/birchb1024
-$ git clone git@github.com:birchb1024/terraform-provider-universe.git
+$ mkdir -p $GOPATH/src/github.com/operatorequals; cd $GOPATH/src/github.com/operatorequals
+$ git clone git@github.com:operatorequals/terraform-provider-universe.git
 ```
 
 Enter the provider directory and build the provider
 
 ```sh
-$ cd $GOPATH/src/github.com/birchb1024/terraform-provider-universe
+$ cd $GOPATH/src/github.com/operatorequals/terraform-provider-universe
 $ make build
 ```
 
@@ -604,7 +604,7 @@ To install the provider in the usual places for the `terraform` program, run `ma
 $HOME/.terraform.d/
 └── plugins
     ├── github.com
-    │   └── birchb1024
+    │   └── operatorequals
     │       └── universe
     │           └── 0.0.5
     │               └── linux_amd64
