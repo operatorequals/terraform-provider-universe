@@ -1,4 +1,4 @@
-module github.com/birchb1024/terraform-provider-universe
+module github.com/operatorequals/terraform-provider-universe
 
 go 1.16
 
