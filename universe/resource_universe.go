@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/BurntSushi/toml"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"gopkg.in/yaml.v1"
 	"log"
 	"os"
 	"os/exec"
@@ -44,7 +46,7 @@ func resourceCustom() *schema.Resource {
 				Description:      "The information (in JSON format) managed by Terraform plan and apply.",
 				Type:             schema.TypeString,
 				Required:         true,
-				ValidateFunc:     validation.StringIsJSON,
+				ValidateFunc:     validation.StringIsNotWhiteSpace,
 				DiffSuppressFunc: diffSuppressComputed,
 			},
 
@@ -64,7 +66,8 @@ func diffSuppressComputed(_, old, new string, _ *schema.ResourceData) bool {
 
 	removeComputed := func(jsonish string) string {
 		var x interface{}
-		err := json.Unmarshal([]byte(jsonish), &x)
+		jstr, err := decodeConfigToJSON([]byte(jsonish))
+		err = json.Unmarshal(jstr, &x)
 		if err != nil {
 			return ""
 		}
@@ -88,7 +91,8 @@ func diffSuppressComputed(_, old, new string, _ *schema.ResourceData) bool {
 	oldJSON := removeComputed(old)
 
 	result := newJSON == oldJSON
-	log.Printf("diffSuppressComputed() %#v for %#v  %#v \n", result, old, new)
+	log.Printf("diffSuppressComputed() %#v for\n* %#v\n* %#v \n", result, old, new)
+	log.Printf("diffSuppressComputed() Compared Structs:\n* %#v\n* %#v\n", oldJSON, newJSON)
 	return result
 }
 
@@ -218,10 +222,10 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 		if err != nil {
 			return false, err
 		}
-		err = d.Set("config", string(payloadBytes))
-		if err != nil {
-			return false, err
-		}
+		//err = d.Set("config", string(payloadBytes))
+		//if err != nil {
+		//	return false, err
+		//}
 		log.Printf("Executed: setting data to: %s", string(payloadBytes))
 	}
 
@@ -327,11 +331,26 @@ func getConfigFromTF(d ResourceLike) ([]byte, error) {
 		return nil, fmt.Errorf("expected string in 'config', but got: %#v", dr)
 	}
 	db := []byte(js)
+
+	return decodeConfigToJSON(db)
+}
+
+func decodeConfigToJSON(str []byte) ([]byte, error) {
 	attributes := map[string]interface{}{}
-	err := json.Unmarshal(db, &attributes)
-	if err != nil {
-		return nil, fmt.Errorf("expected JSON in 'config' but got: %#v", js)
+	// Try extraction from JSON
+	err := json.Unmarshal(str, &attributes)
+	if err == nil {
+		return json.Marshal(attributes)
 	}
-	configData, err := json.Marshal(attributes)
-	return configData, err
+	// Try extraction from YAML
+	err = yaml.Unmarshal(str, &attributes)
+	if err == nil {
+		return json.Marshal(attributes)
+	}
+	err = toml.Unmarshal(str, &attributes)
+	// Try extraction from TOML
+	if err == nil {
+		return json.Marshal(attributes)
+	}
+	return nil, fmt.Errorf("expected JSON/YAML/TOML in 'config' but got: %s", str)
 }
