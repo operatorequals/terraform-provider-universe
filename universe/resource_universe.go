@@ -224,6 +224,11 @@ func callExecutor(event string, d ResourceLike, providerConfig interface{}) (boo
 		if err != nil {
 			return false, err
 		}
+		err = d.Set("config", string(payloadBytes))
+		if err != nil {
+			return false, err
+		}
+
 		log.Printf("Executed: setting data to: %s", string(payloadBytes))
 	}
 
