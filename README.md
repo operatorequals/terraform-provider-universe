@@ -24,7 +24,9 @@ Otherwise, if you're a Golang user, you can `get` with
 
 ```shell script
     (cd /tmp; GO111MODULE=on go get github.com/operatorequals/terraform-provider-universe)
+    (cd $GOPATH/src/github.com/operatorequals/terraform-provider-universe; make install)
 ```
+
 
 The [installer script](https://github.com/operatorequals/terraform-provider-universe/blob/master/scripts/install.sh) places
  the binary in the correct places to be picked up by Terraform `init`. Alternatively you can copy the `terraform-provider-universe` 
